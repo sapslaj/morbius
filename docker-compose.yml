@@ -1,0 +1,89 @@
+version: '3'
+services:
+  loki:
+    image: grafana/loki:2.6.1
+    ports:
+      - 3100:3100
+    entrypoint:
+      - sh
+      - -euc
+      - |
+        cat <<EOF > /etc/loki/local-config.yaml
+        auth_enabled: false
+        server:
+          http_listen_port: 3100
+        schema_config:
+          configs:
+            - from: 2020-10-24
+              store: boltdb-shipper
+              object_store: filesystem
+              schema: v11
+              index:
+                prefix: index_
+                period: 24h
+        limits_config:
+          max_query_series: 100000
+        common:
+          path_prefix: /loki
+          storage:
+            filesystem:
+              chunks_directory: /loki/chunks
+              rules_directory: /loki/rules
+          replication_factor: 1
+          ring:
+            kvstore:
+              store: inmemory
+        analytics:
+          reporting_enabled: false
+        EOF
+        /usr/bin/loki -config.file=/etc/loki/local-config.yaml
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - 3000:3000
+    environment:
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+      GF_AUTH_ANONYMOUS_ENABLED: 'true'
+    entrypoint:
+      - sh
+      - -euc
+      - |
+        mkdir -p /etc/grafana/provisioning/datasources
+        cat <<EOF > /etc/grafana/provisioning/datasources/ds.yaml
+        apiVersion: 1
+        datasources:
+          - name: Loki
+            type: loki
+            access: proxy
+            url: http://loki:3100
+            jsonData:
+              httpHeaderName1: "X-Scope-OrgID"
+            secureJsonData:
+              httpHeaderValue1: "tenant1"
+          - name: Elasticsearch
+            type: elasticsearch
+            access: proxy
+            url: http://elasticsearch:9200
+            database: netflow
+            jsonData:
+              esVersion: 8.0.0
+              timeField: timestamp
+        EOF
+        /run.sh
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.5.2
+    ports:
+      - 9200:9200
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: 'false'
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.5.2
+    ports:
+      - 5601:5601
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      INTERACTIVESETUP_ENABLED: 'false'
