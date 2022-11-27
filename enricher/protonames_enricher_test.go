@@ -18,19 +18,29 @@ func TestProtonamesEnricher(t *testing.T) {
 
 	tests := []test{
 		{
-			desc:  "Adds a protocol name for a known protocol",
-			input: map[string]interface{}{"proto": 1},
-			want:  map[string]interface{}{"proto": 1, "protocol_name": "ICMP"},
-		},
-		{
 			desc:  "Does not modify message if protocol not defined",
 			input: map[string]interface{}{"other": 69},
 			want:  map[string]interface{}{"other": 69},
 		},
 		{
+			desc:  "Adds a protocol name for a known protocol",
+			input: map[string]interface{}{"proto": 1},
+			want:  map[string]interface{}{"proto": 1, "protocol_name": "ICMP"},
+		},
+		{
 			desc:  "Does not add protocol name if protocol number is unknown",
 			input: map[string]interface{}{"protocol": 69},
 			want:  map[string]interface{}{"protocol": 69},
+		},
+		{
+			desc:  "Adds an etype name for a known etype",
+			input: map[string]interface{}{"ethernet_type": 2048},
+			want:  map[string]interface{}{"ethernet_type": 2048, "ethernet_type_name": "IPv4"},
+		},
+		{
+			desc:  "Does not add etype name if etype is unknown",
+			input: map[string]interface{}{"ethernet_type": 69},
+			want:  map[string]interface{}{"ethernet_type": 69},
 		},
 	}
 

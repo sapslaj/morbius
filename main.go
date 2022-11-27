@@ -15,20 +15,25 @@ func main() {
 	v9port := 2056
 	sFlowPort := 6343
 
-	logger := &transport.StderrLogger{}
+	var enrichers []enricher.Enricher
+	var destinations []destination.Destination
+
 	protnamesEnricher := enricher.NewProtonamesEnricher()
+	enrichers = append(enrichers, &protnamesEnricher)
+	rdnsEnricher := enricher.NewRDNSEnricher()
+	enrichers = append(enrichers, &rdnsEnricher)
+
 	lokiDestination := destination.NewLokiDestination()
+	destinations = append(destinations, &lokiDestination)
 	elasticsearchDestination := destination.NewElasticsearchDestination()
-	// stdoutDestination := StdoutDestination{}
+	destinations = append(destinations, &elasticsearchDestination)
+	// stdoutDestination := destination.StdoutDestination{}
+	// destinations = append(destinations, &stdoutDestination)
+
+	logger := &transport.StderrLogger{}
 	transport := &transport.Transport{
-		Enrichers: []enricher.Enricher{
-			&protnamesEnricher,
-		},
-		Destinations: []destination.Destination{
-			// &stdoutDestination,
-			&lokiDestination,
-			&elasticsearchDestination,
-		},
+		Enrichers:    enrichers,
+		Destinations: destinations,
 	}
 
 	logger.Printf("It's Morbin' Time!")
