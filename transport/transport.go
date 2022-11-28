@@ -197,30 +197,30 @@ func (s *Transport) FormatFlowMessage(fmsg *goflowpb.FlowMessage) map[string]int
 		msg["src_addr_encap"] = net.IP(fmsg.SrcAddrEncap).String()
 		msg["dst_addr_encap"] = net.IP(fmsg.DstAddrEncap).String()
 		msg["proto_encap"] = int(fmsg.ProtoEncap)
-		msg["ETypeEncap"] = int(fmsg.EtypeEncap)
-		msg["IPTosEncap"] = int(fmsg.IPTosEncap)
-		msg["IPTTLEncap"] = int(fmsg.IPTTLEncap)
-		msg["IPv6FlowLabelEncap"] = int(fmsg.IPv6FlowLabelEncap)
-		msg["FragmentIdEncap"] = int(fmsg.FragmentIdEncap)
-		msg["FragmentOffsetEncap"] = int(fmsg.FragmentOffsetEncap)
+		msg["ethernet_type_encap"] = int(fmsg.EtypeEncap)
+		msg["ip_tos_encap"] = int(fmsg.IPTosEncap)
+		msg["ip_ttl_encap"] = int(fmsg.IPTTLEncap)
+		msg["ipv6_flow_label_encap"] = int(fmsg.IPv6FlowLabelEncap)
+		msg["fragment_id_encap"] = int(fmsg.FragmentIdEncap)
+		msg["fragment_offset_encap"] = int(fmsg.FragmentOffsetEncap)
 	}
 
 	if fmsg.HasMPLS {
-		msg["HasMPLS"] = fmsg.HasMPLS
-		msg["MPLSCount"] = int(fmsg.MPLSCount)
-		msg["MPLS1TTL"] = int(fmsg.MPLS1TTL)
-		msg["MPLS1Label"] = int(fmsg.MPLS1Label)
-		msg["MPLS2TTL"] = int(fmsg.MPLS2TTL)
-		msg["MPLS2Label"] = int(fmsg.MPLS2Label)
-		msg["MPLS3TTL"] = int(fmsg.MPLS3TTL)
-		msg["MPLS3Label"] = int(fmsg.MPLS3Label)
-		msg["MPLSLastTTL"] = int(fmsg.MPLSLastTTL)
-		msg["MPLSLastLabel"] = int(fmsg.MPLSLastLabel)
+		msg["has_mpls"] = fmsg.HasMPLS
+		msg["mpls_count"] = int(fmsg.MPLSCount)
+		msg["mpls_1_ttl"] = int(fmsg.MPLS1TTL)
+		msg["mpls_1_label"] = int(fmsg.MPLS1Label)
+		msg["mpls_2_ttl"] = int(fmsg.MPLS2TTL)
+		msg["mpls_2_label"] = int(fmsg.MPLS2Label)
+		msg["mpls_3_ttl"] = int(fmsg.MPLS3TTL)
+		msg["mpls_3_label"] = int(fmsg.MPLS3Label)
+		msg["mpls_last_ttl"] = int(fmsg.MPLSLastTTL)
+		msg["mpls_last_label"] = int(fmsg.MPLSLastLabel)
 	}
 
 	if fmsg.HasPPP {
-		msg["HasPPP"] = fmsg.HasPPP
-		msg["PPPAddressControl"] = int(fmsg.PPPAddressControl)
+		msg["has_ppp"] = fmsg.HasPPP
+		msg["ppp_address_control"] = int(fmsg.PPPAddressControl)
 	}
 
 	return msg
