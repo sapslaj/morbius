@@ -14,8 +14,10 @@ import (
 )
 
 type ElasticseachDestinationConfig struct {
-	Index          string
-	TimestampField string
+	Index               string
+	TimestampField      string
+	SynchronousIndexing bool
+	BulkIndexerConfig   *esutil.BulkIndexerConfig
 }
 
 type ElasticseachDestination struct {
@@ -38,17 +40,21 @@ func NewElasticsearchDestination(config *ElasticseachDestinationConfig) Elastics
 	if err != nil {
 		panic(err)
 	}
-	bulkIndexer, err := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
-		Index:  config.Index,
-		Client: client,
-	})
-	if err != nil {
-		panic(err)
-	}
 	d := ElasticseachDestination{
-		Config:      config,
-		client:      client,
-		bulkIndexer: bulkIndexer,
+		Config: config,
+		client: client,
+	}
+	if !d.Config.SynchronousIndexing {
+		if d.Config.BulkIndexerConfig == nil {
+			d.Config.BulkIndexerConfig = &esutil.BulkIndexerConfig{}
+		}
+		d.Config.BulkIndexerConfig.Index = d.Config.Index
+		d.Config.BulkIndexerConfig.Client = d.client
+		bulkIndexer, err := esutil.NewBulkIndexer(*d.Config.BulkIndexerConfig)
+		if err != nil {
+			panic(err)
+		}
+		d.bulkIndexer = bulkIndexer
 	}
 	d.setupIndex()
 	return d
@@ -62,16 +68,32 @@ func (d *ElasticseachDestination) Publish(msg map[string]interface{}) {
 	}
 	documentID := fmt.Sprintf("%x", sha256.Sum256(data))
 
-	err = d.bulkIndexer.Add(context.Background(), esutil.BulkIndexerItem{
-		Action:     "index",
-		DocumentID: documentID,
-		Body:       bytes.NewReader(data),
-		OnFailure: func(ctx context.Context, bii esutil.BulkIndexerItem, biri esutil.BulkIndexerResponseItem, err error) {
-			log.Printf("%v %v %v", bii, biri, err)
-		},
-	})
-	if err != nil {
-		panic(err)
+	if d.Config.SynchronousIndexing {
+		resp, err := d.client.Index(
+			d.Config.Index,
+			bytes.NewReader(data),
+			d.client.Index.WithDocumentID(documentID),
+		)
+		if err != nil {
+			log.Printf("%v %v", resp, err)
+			return
+		}
+		if resp.IsError() {
+			log.Printf("%v %v", resp, err)
+			return
+		}
+	} else {
+		err = d.bulkIndexer.Add(context.Background(), esutil.BulkIndexerItem{
+			Action:     "index",
+			DocumentID: documentID,
+			Body:       bytes.NewReader(data),
+			OnFailure: func(ctx context.Context, bii esutil.BulkIndexerItem, biri esutil.BulkIndexerResponseItem, err error) {
+				log.Printf("%v %v %v", bii, biri, err)
+			},
+		})
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
