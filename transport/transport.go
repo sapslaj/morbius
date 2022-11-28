@@ -30,22 +30,62 @@ func init() {
 	prometheus.MustRegister(MetricFlowMessageCount)
 }
 
+type TransportDispatchMethod int
+
+const (
+	TransportDispatchLinear     TransportDispatchMethod = iota
+	TransportDispatchWorkerPool TransportDispatchMethod = iota
+	TransportDispatchGoroutine  TransportDispatchMethod = iota
+)
+
 type Transport struct {
-	Destinations []destination.Destination
-	Enrichers    []enricher.Enricher
+	Destinations   []destination.Destination
+	Enrichers      []enricher.Enricher
+	workerPool     *WorkerPool[*goflowpb.FlowMessage]
+	DispatchMethod TransportDispatchMethod
+}
+
+func NewTransport(dispatchMethod TransportDispatchMethod, destinations []destination.Destination, enrichers []enricher.Enricher) *Transport {
+	t := &Transport{
+		Destinations:   destinations,
+		Enrichers:      enrichers,
+		DispatchMethod: dispatchMethod,
+	}
+	if t.DispatchMethod == TransportDispatchWorkerPool {
+		t.workerPool = NewWorkerPool(100, t.messageWorkerPublish)
+		t.workerPool.Start()
+	}
+	return t
 }
 
 func (s *Transport) Publish(fmsgs []*goflowpb.FlowMessage) {
 	MetricFlowMessageBatchCount.Inc()
-	for _, fmsg := range fmsgs {
-		MetricFlowMessageCount.Inc()
-		ffmsg := s.FormatFlowMessage(fmsg)
-		for _, enricher := range s.Enrichers {
-			ffmsg = enricher.Process(ffmsg)
+	switch s.DispatchMethod {
+	case TransportDispatchLinear:
+		for _, fmsg := range fmsgs {
+			s.messageWorkerPublish(fmsg)
 		}
-		for _, destination := range s.Destinations {
-			destination.Publish(ffmsg)
+	case TransportDispatchWorkerPool:
+		for _, fmsg := range fmsgs {
+			s.workerPool.Push(fmsg)
 		}
+	case TransportDispatchGoroutine:
+		for i := range fmsgs {
+			go func(fmesg *goflowpb.FlowMessage) {
+				s.messageWorkerPublish(fmesg)
+			}(fmsgs[i])
+		}
+	}
+}
+
+func (s *Transport) messageWorkerPublish(fmsg *goflowpb.FlowMessage) {
+	MetricFlowMessageCount.Inc()
+	ffmsg := s.FormatFlowMessage(fmsg)
+	for _, enricher := range s.Enrichers {
+		ffmsg = enricher.Process(ffmsg)
+	}
+	for _, destination := range s.Destinations {
+		destination.Publish(ffmsg)
 	}
 }
 
