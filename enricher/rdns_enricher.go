@@ -3,13 +3,22 @@ package enricher
 import (
 	"net"
 	"sort"
+
+	lru "github.com/hashicorp/golang-lru/v2"
 )
 
 type RDNSEnricher struct {
+	cache *lru.Cache[string, string]
 }
 
 func NewRDNSEnricher() RDNSEnricher {
-	return RDNSEnricher{}
+	cache, err := lru.New[string, string](2048)
+	if err != nil {
+		panic(err)
+	}
+	return RDNSEnricher{
+		cache: cache,
+	}
 }
 
 func (e *RDNSEnricher) Process(msg map[string]interface{}) map[string]interface{} {
@@ -19,11 +28,17 @@ func (e *RDNSEnricher) Process(msg map[string]interface{}) map[string]interface{
 }
 
 func (e *RDNSEnricher) add(msg map[string]interface{}, originalField string, targetField string) map[string]interface{} {
-	addr, ok := msg[originalField]
+	addrRaw, ok := msg[originalField]
 	if !ok {
 		return msg
 	}
-	names, err := net.LookupAddr(addr.(string))
+	addr := addrRaw.(string)
+	value, ok := e.cache.Get(addr)
+	if ok {
+		msg[targetField] = value
+		return msg
+	}
+	names, err := net.LookupAddr(addr)
 	if err != nil {
 		// log.Printf("error with net.LookupAddr: %v", err)
 		return msg
@@ -32,6 +47,8 @@ func (e *RDNSEnricher) add(msg map[string]interface{}, originalField string, tar
 		return msg
 	}
 	sort.Strings(names)
-	msg[targetField] = names[0]
+	value = names[0]
+	e.cache.Add(addr, value)
+	msg[targetField] = value
 	return msg
 }

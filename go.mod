@@ -6,6 +6,7 @@ require (
 	github.com/cloudflare/goflow/v3 v3.4.4
 	github.com/elastic/go-elasticsearch/v8 v8.5.0
 	github.com/google/go-cmp v0.5.9
+	github.com/hashicorp/golang-lru/v2 v2.0.1
 )
 
 require (
