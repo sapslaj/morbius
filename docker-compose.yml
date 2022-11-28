@@ -47,6 +47,10 @@ services:
                 period: 24h
         limits_config:
           max_query_series: 100000
+          ingestion_rate_mb: 1024
+          ingestion_burst_size_mb: 1024
+          per_stream_rate_limit: 512M
+          per_stream_rate_limit_burst: 1024M
         common:
           path_prefix: /loki
           storage:
@@ -106,6 +110,7 @@ services:
         datasources:
           - name: Elasticsearch
             type: elasticsearch
+            uid: P31C819B24CF3C3C7
             access: proxy
             url: http://elasticsearch:9200
             database: netflow
@@ -114,6 +119,7 @@ services:
               timeField: timestamp
           - name: Loki
             type: loki
+            uid: P8E80F9AEF21F6940
             access: proxy
             url: http://loki:3100
             jsonData:
@@ -122,12 +128,14 @@ services:
               httpHeaderValue1: "tenant1"
           - name: Phlare
             type: phlare
+            uid: PD3452FC02DB93657
             access: proxy
             basicAuth: false
             url: http://phlare:4100
             version: 1
           - name: Prometheus
             type: prometheus
+            uid: PBFA97CFB590B2093
             access: proxy
             url: http://prometheus:9090
         EOF
@@ -140,6 +148,7 @@ services:
     environment:
       discovery.type: single-node
       xpack.security.enabled: 'false'
+      cluster.routing.allocation.disk.threshold_enabled: 'false'
       ES_JAVA_OPTS: -Xms2g -Xmx2g
     mem_limit: 4g
 
