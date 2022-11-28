@@ -1,12 +1,20 @@
 package enricher
 
+type ProtonamesEnricherConfig struct {
+}
+
 type ProtonamesEnricher struct {
+	Config         *ProtonamesEnricherConfig
 	protoTable     map[int]string
 	ethertypeTable map[int]string
 }
 
-func NewProtonamesEnricher() ProtonamesEnricher {
+func NewProtonamesEnricher(config *ProtonamesEnricherConfig) ProtonamesEnricher {
+	if config == nil {
+		config = &ProtonamesEnricherConfig{}
+	}
 	return ProtonamesEnricher{
+		Config: config,
 		protoTable: map[int]string{
 			0:   "HOPOPT",
 			1:   "ICMP",

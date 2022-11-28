@@ -14,7 +14,7 @@ func TestRDNSEnricher(t *testing.T) {
 		want  map[string]interface{}
 	}
 
-	pe := enricher.NewRDNSEnricher()
+	pe := enricher.NewRDNSEnricher(nil)
 
 	tests := []test{
 		{

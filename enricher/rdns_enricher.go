@@ -8,10 +8,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type RDNSEnricher struct {
-	cache *lru.Cache[string, string]
-}
-
 var (
 	MetricRDNSCacheSize = prometheus.NewGauge(
 		prometheus.GaugeOpts{
@@ -47,18 +43,41 @@ func init() {
 	prometheus.MustRegister(MetricRDNSLookups)
 }
 
-func NewRDNSEnricher() RDNSEnricher {
-	cache, err := lru.New[string, string](2048)
-	if err != nil {
-		panic(err)
+type RDNSEnricherConfig struct {
+	EnableCache bool
+	CacheSize   int
+}
+
+type RDNSEnricher struct {
+	Config *RDNSEnricherConfig
+	cache  *lru.Cache[string, string]
+}
+
+func NewRDNSEnricher(config *RDNSEnricherConfig) RDNSEnricher {
+	if config == nil {
+		config = &RDNSEnricherConfig{}
+	}
+	if config.EnableCache && config.CacheSize == 0 {
+		config.CacheSize = 2048
+	}
+	var cache *lru.Cache[string, string]
+	var err error
+	if config.EnableCache {
+		cache, err = lru.New[string, string](config.CacheSize)
+		if err != nil {
+			panic(err)
+		}
 	}
 	return RDNSEnricher{
-		cache: cache,
+		Config: config,
+		cache:  cache,
 	}
 }
 
 func (e *RDNSEnricher) Process(msg map[string]interface{}) map[string]interface{} {
-	MetricRDNSCacheSize.Set(float64(e.cache.Len()))
+	if e.Config.EnableCache {
+		MetricRDNSCacheSize.Set(float64(e.cache.Len()))
+	}
 	msg = e.add(msg, "src_addr", "src_hostname")
 	msg = e.add(msg, "dst_addr", "dst_hostname")
 	return msg
@@ -70,13 +89,18 @@ func (e *RDNSEnricher) add(msg map[string]interface{}, originalField string, tar
 		return msg
 	}
 	addr := addrRaw.(string)
-	value, ok := e.cache.Get(addr)
-	if ok {
-		MetricRDNSCacheHits.Inc()
-		msg[targetField] = value
-		return msg
+	var value string
+
+	if e.Config.EnableCache {
+		value, ok := e.cache.Get(addr)
+		if ok {
+			MetricRDNSCacheHits.Inc()
+			msg[targetField] = value
+			return msg
+		}
+		MetricRDNSCacheMisses.Inc()
 	}
-	MetricRDNSCacheMisses.Inc()
+
 	names, err := net.LookupAddr(addr)
 	if err != nil {
 		MetricRDNSLookups.With(prometheus.Labels{"status": "error"}).Inc()
@@ -87,9 +111,12 @@ func (e *RDNSEnricher) add(msg map[string]interface{}, originalField string, tar
 		return msg
 	}
 	MetricRDNSLookups.With(prometheus.Labels{"status": "success"}).Inc()
+
 	sort.Strings(names)
 	value = names[0]
-	e.cache.Add(addr, value)
+	if e.Config.EnableCache {
+		e.cache.Add(addr, value)
+	}
 	msg[targetField] = value
 	return msg
 }

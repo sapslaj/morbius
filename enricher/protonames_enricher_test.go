@@ -14,7 +14,7 @@ func TestProtonamesEnricher(t *testing.T) {
 		want  map[string]interface{}
 	}
 
-	pe := enricher.NewProtonamesEnricher()
+	pe := enricher.NewProtonamesEnricher(nil)
 
 	tests := []test{
 		{

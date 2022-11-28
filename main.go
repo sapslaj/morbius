@@ -24,23 +24,22 @@ func main() {
 	var enrichers []enricher.Enricher
 	var destinations []destination.Destination
 
-	protnamesEnricher := enricher.NewProtonamesEnricher()
+	protnamesEnricher := enricher.NewProtonamesEnricher(nil)
 	enrichers = append(enrichers, &protnamesEnricher)
-	rdnsEnricher := enricher.NewRDNSEnricher()
+	rdnsEnricher := enricher.NewRDNSEnricher(&enricher.RDNSEnricherConfig{
+		EnableCache: true,
+	})
 	enrichers = append(enrichers, &rdnsEnricher)
 
-	lokiDestination := destination.NewLokiDestination()
+	lokiDestination := destination.NewLokiDestination(nil)
 	destinations = append(destinations, &lokiDestination)
-	elasticsearchDestination := destination.NewElasticsearchDestination()
+	elasticsearchDestination := destination.NewElasticsearchDestination(nil)
 	destinations = append(destinations, &elasticsearchDestination)
-	// stdoutDestination := destination.StdoutDestination{}
-	// destinations = append(destinations, &stdoutDestination)
+	stdoutDestination := destination.NewStdoutDestination(nil)
+	destinations = append(destinations, &stdoutDestination)
 
 	logger := &transport.StderrLogger{}
-	transport := &transport.Transport{
-		Enrichers:    enrichers,
-		Destinations: destinations,
-	}
+	transport := transport.NewTransport(transport.TransportDispatchWorkerPool, destinations, enrichers)
 
 	logger.Printf("It's Morbin' Time!")
 	logger.Printf("v5:\t%s:%d", host, v5port)

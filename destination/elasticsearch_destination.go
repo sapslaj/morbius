@@ -13,28 +13,41 @@ import (
 	"github.com/elastic/go-elasticsearch/v8/esutil"
 )
 
+type ElasticseachDestinationConfig struct {
+	Index          string
+	TimestampField string
+}
+
 type ElasticseachDestination struct {
+	Config      *ElasticseachDestinationConfig
 	client      *elasticsearch.Client
-	index       string
 	bulkIndexer esutil.BulkIndexer
 }
 
-func NewElasticsearchDestination() ElasticseachDestination {
-	index := "netflow"
+func NewElasticsearchDestination(config *ElasticseachDestinationConfig) ElasticseachDestination {
+	if config == nil {
+		config = &ElasticseachDestinationConfig{}
+	}
+	if config.Index == "" {
+		config.Index = "netflow"
+	}
+	if config.TimestampField == "" {
+		config.TimestampField = "@timestamp"
+	}
 	client, err := elasticsearch.NewDefaultClient()
 	if err != nil {
 		panic(err)
 	}
 	bulkIndexer, err := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
-		Index:  index,
+		Index:  config.Index,
 		Client: client,
 	})
 	if err != nil {
 		panic(err)
 	}
 	d := ElasticseachDestination{
+		Config:      config,
 		client:      client,
-		index:       index,
 		bulkIndexer: bulkIndexer,
 	}
 	d.setupIndex()
@@ -42,7 +55,7 @@ func NewElasticsearchDestination() ElasticseachDestination {
 }
 
 func (d *ElasticseachDestination) Publish(msg map[string]interface{}) {
-	msg["@timestamp"] = fmt.Sprint(time.Now().UnixMilli())
+	msg[d.Config.TimestampField] = fmt.Sprint(time.Now().UnixMilli())
 	data, err := json.Marshal(msg)
 	if err != nil {
 		panic(err)
@@ -63,13 +76,13 @@ func (d *ElasticseachDestination) Publish(msg map[string]interface{}) {
 }
 
 func (d *ElasticseachDestination) setupIndex() {
-	resp, err := d.client.Indices.Exists([]string{d.index})
+	resp, err := d.client.Indices.Exists([]string{d.Config.Index})
 	log.Print(resp)
 	if err != nil {
 		panic(err)
 	}
 	if resp.StatusCode == 404 {
-		resp, err = d.client.Indices.Create(d.index)
+		resp, err = d.client.Indices.Create(d.Config.Index)
 		log.Print(resp)
 		if err != nil {
 			panic(err)
@@ -77,12 +90,12 @@ func (d *ElasticseachDestination) setupIndex() {
 	}
 	mappingsBody, _ := json.Marshal(map[string]interface{}{
 		"properties": map[string]interface{}{
-			"@timestamp": map[string]string{
+			d.Config.TimestampField: map[string]string{
 				"type": "date",
 			},
 		},
 	})
-	resp, err = d.client.Indices.PutMapping([]string{d.index}, bytes.NewReader(mappingsBody))
+	resp, err = d.client.Indices.PutMapping([]string{d.Config.Index}, bytes.NewReader(mappingsBody))
 	log.Print(resp)
 	if err != nil {
 		panic(err)
