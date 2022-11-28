@@ -1,12 +1,17 @@
 package main
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/cloudflare/goflow/v3/utils"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sapslaj/morbius/destination"
 	"github.com/sapslaj/morbius/enricher"
 	"github.com/sapslaj/morbius/transport"
+
+	"net/http"
+	_ "net/http/pprof"
 )
 
 func main() {
@@ -14,6 +19,7 @@ func main() {
 	v5port := 2055
 	v9port := 2056
 	sFlowPort := 6343
+	httpPort := 6060
 
 	var enrichers []enricher.Enricher
 	var destinations []destination.Destination
@@ -40,6 +46,7 @@ func main() {
 	logger.Printf("v5:\t%s:%d", host, v5port)
 	logger.Printf("v9:\t%s:%d", host, v9port)
 	logger.Printf("sFlow:\t%s:%d", host, sFlowPort)
+	logger.Printf("http:\t%s:%d", host, httpPort)
 
 	sNF5 := utils.StateNFLegacy{
 		Transport: transport,
@@ -74,6 +81,13 @@ func main() {
 	go func() {
 		defer wg.Done()
 		logger.Fatal(sSflow.FlowRoutine(1, host, sFlowPort, false))
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		http.Handle("/metrics", promhttp.Handler())
+		logger.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%d", host, httpPort), nil))
 	}()
 
 	wg.Wait()
