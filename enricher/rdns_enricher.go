@@ -3,6 +3,7 @@ package enricher
 import (
 	"net"
 	"sort"
+	"sync"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/prometheus/client_golang/prometheus"
@@ -46,11 +47,13 @@ func init() {
 type RDNSEnricherConfig struct {
 	EnableCache bool
 	CacheSize   int
+	CacheOnly   bool
 }
 
 type RDNSEnricher struct {
-	Config *RDNSEnricherConfig
-	cache  *lru.Cache[string, string]
+	Config            *RDNSEnricherConfig
+	cache             *lru.Cache[string, string]
+	cacheLookupStatus sync.Map
 }
 
 func NewRDNSEnricher(config *RDNSEnricherConfig) RDNSEnricher {
@@ -58,7 +61,7 @@ func NewRDNSEnricher(config *RDNSEnricherConfig) RDNSEnricher {
 		config = &RDNSEnricherConfig{}
 	}
 	if config.EnableCache && config.CacheSize == 0 {
-		config.CacheSize = 2048
+		config.CacheSize = 128
 	}
 	var cache *lru.Cache[string, string]
 	var err error
@@ -95,28 +98,54 @@ func (e *RDNSEnricher) add(msg map[string]interface{}, originalField string, tar
 		value, ok := e.cache.Get(addr)
 		if ok {
 			MetricRDNSCacheHits.Inc()
-			msg[targetField] = value
+			if value != "" {
+				msg[targetField] = value
+			}
 			return msg
 		}
 		MetricRDNSCacheMisses.Inc()
 	}
 
+	if e.Config.CacheOnly {
+		go func(addr string) {
+			_, inProgress := e.cacheLookupStatus.Load(addr)
+			if !inProgress {
+				e.cacheLookupStatus.Store(addr, true)
+				e.lookup(addr)
+				e.cacheLookupStatus.Delete(addr)
+			}
+		}(addr)
+		return msg
+	}
+
+	value, ok = e.lookup(addr)
+	if !ok {
+		return msg
+	}
+	if value != "" {
+		msg[targetField] = value
+	}
+	return msg
+}
+
+func (e *RDNSEnricher) lookup(addr string) (string, bool) {
 	names, err := net.LookupAddr(addr)
 	if err != nil {
 		MetricRDNSLookups.With(prometheus.Labels{"status": "error"}).Inc()
-		return msg
-	}
-	if len(names) == 0 {
+		// TODO: only return ok = true on general lookup failures
+	} else if len(names) == 0 {
 		MetricRDNSLookups.With(prometheus.Labels{"status": "empty"}).Inc()
-		return msg
+	} else {
+		MetricRDNSLookups.With(prometheus.Labels{"status": "success"}).Inc()
 	}
-	MetricRDNSLookups.With(prometheus.Labels{"status": "success"}).Inc()
 
-	sort.Strings(names)
-	value = names[0]
+	value := ""
+	if len(names) > 0 {
+		sort.Strings(names)
+		value = names[0]
+	}
 	if e.Config.EnableCache {
 		e.cache.Add(addr, value)
 	}
-	msg[targetField] = value
-	return msg
+	return value, true
 }
