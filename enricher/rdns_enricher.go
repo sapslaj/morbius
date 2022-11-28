@@ -83,6 +83,8 @@ func (e *RDNSEnricher) Process(msg map[string]interface{}) map[string]interface{
 	}
 	msg = e.add(msg, "src_addr", "src_hostname")
 	msg = e.add(msg, "dst_addr", "dst_hostname")
+	msg = e.add(msg, "src_addr_encap", "src_hostname_encap")
+	msg = e.add(msg, "dst_addr_encap", "dst_hostname_encap")
 	return msg
 }
 

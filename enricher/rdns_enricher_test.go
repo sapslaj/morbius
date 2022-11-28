@@ -48,9 +48,19 @@ func TestRDNSEnricher(t *testing.T) {
 			want:  map[string]interface{}{"src_addr": "1.1.1.1", "src_hostname": "one.one.one.one."},
 		},
 		{
-			desc:  "Adds dst_hostname when src_addr is set",
+			desc:  "Adds dst_hostname when dst_addr is set",
 			input: map[string]interface{}{"dst_addr": "1.1.1.1"},
 			want:  map[string]interface{}{"dst_addr": "1.1.1.1", "dst_hostname": "one.one.one.one."},
+		},
+		{
+			desc:  "Adds src_hostname_encap when src_addr_encap is set",
+			input: map[string]interface{}{"src_addr_encap": "1.1.1.1"},
+			want:  map[string]interface{}{"src_addr_encap": "1.1.1.1", "src_hostname_encap": "one.one.one.one."},
+		},
+		{
+			desc:  "Adds dst_hostname_encap when dst_addr_encap is set",
+			input: map[string]interface{}{"dst_addr_encap": "1.1.1.1"},
+			want:  map[string]interface{}{"dst_addr_encap": "1.1.1.1", "dst_hostname_encap": "one.one.one.one."},
 		},
 	}
 

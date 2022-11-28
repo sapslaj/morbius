@@ -110,7 +110,15 @@ func (e *ProtonamesEnricher) Process(msg map[string]interface{}) map[string]inte
 		result, ok = e.protoTable[original.(int)]
 		return
 	})
+	msg = e.add(msg, "proto_encap", "protocol_encap_name", func(original interface{}) (result interface{}, ok bool) {
+		result, ok = e.protoTable[original.(int)]
+		return
+	})
 	msg = e.add(msg, "ethernet_type", "ethernet_type_name", func(original interface{}) (result interface{}, ok bool) {
+		result, ok = e.ethertypeTable[original.(int)]
+		return
+	})
+	msg = e.add(msg, "ethernet_type_encap", "ethernet_type_encap_name", func(original interface{}) (result interface{}, ok bool) {
 		result, ok = e.ethertypeTable[original.(int)]
 		return
 	})

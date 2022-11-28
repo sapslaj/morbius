@@ -42,6 +42,16 @@ func TestProtonamesEnricher(t *testing.T) {
 			input: map[string]interface{}{"ethernet_type": 69},
 			want:  map[string]interface{}{"ethernet_type": 69},
 		},
+		{
+			desc:  "Handles proto_encap",
+			input: map[string]interface{}{"proto": 47, "proto_encap": 1},
+			want:  map[string]interface{}{"proto": 47, "protocol_name": "GRE", "proto_encap": 1, "protocol_encap_name": "ICMP"},
+		},
+		{
+			desc:  "Handles ethernet_type_encap",
+			input: map[string]interface{}{"ethernet_type": 2048, "ethernet_type_encap": 34525},
+			want:  map[string]interface{}{"ethernet_type": 2048, "ethernet_type_name": "IPv4", "ethernet_type_encap": 34525, "ethernet_type_encap_name": "IPv6"},
+		},
 	}
 
 	for _, tc := range tests {
