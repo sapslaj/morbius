@@ -79,6 +79,8 @@ services:
     environment:
       discovery.type: single-node
       xpack.security.enabled: 'false'
+      ES_JAVA_OPTS: -Xms2g -Xmx2g
+    mem_limit: 4g
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.5.2
