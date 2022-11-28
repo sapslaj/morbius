@@ -10,22 +10,32 @@ import (
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v8"
-	"github.com/elastic/go-elasticsearch/v8/esapi"
+	"github.com/elastic/go-elasticsearch/v8/esutil"
 )
 
 type ElasticseachDestination struct {
-	client *elasticsearch.Client
-	index  string
+	client      *elasticsearch.Client
+	index       string
+	bulkIndexer esutil.BulkIndexer
 }
 
 func NewElasticsearchDestination() ElasticseachDestination {
+	index := "netflow"
 	client, err := elasticsearch.NewDefaultClient()
 	if err != nil {
 		panic(err)
 	}
+	bulkIndexer, err := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
+		Index:  index,
+		Client: client,
+	})
+	if err != nil {
+		panic(err)
+	}
 	d := ElasticseachDestination{
-		client: client,
-		index:  "netflow",
+		client:      client,
+		index:       index,
+		bulkIndexer: bulkIndexer,
 	}
 	d.setupIndex()
 	return d
@@ -38,19 +48,17 @@ func (d *ElasticseachDestination) Publish(msg map[string]interface{}) {
 		panic(err)
 	}
 	documentID := fmt.Sprintf("%x", sha256.Sum256(data))
-	req := esapi.IndexRequest{
-		Index:      d.index,
+
+	err = d.bulkIndexer.Add(context.Background(), esutil.BulkIndexerItem{
+		Action:     "index",
 		DocumentID: documentID,
 		Body:       bytes.NewReader(data),
-		Refresh:    "true",
-	}
-	res, err := req.Do(context.TODO(), d.client)
+		OnFailure: func(ctx context.Context, bii esutil.BulkIndexerItem, biri esutil.BulkIndexerResponseItem, err error) {
+			log.Printf("%v %v %v", bii, biri, err)
+		},
+	})
 	if err != nil {
 		panic(err)
-	}
-	defer res.Body.Close()
-	if res.IsError() {
-		panic(res.Status())
 	}
 }
 
