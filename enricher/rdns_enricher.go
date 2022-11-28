@@ -5,10 +5,46 @@ import (
 	"sort"
 
 	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type RDNSEnricher struct {
 	cache *lru.Cache[string, string]
+}
+
+var (
+	MetricRDNSCacheSize = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "rdns_cache_size",
+			Help: "size of RDNS enricher LRU cache",
+		},
+	)
+	MetricRDNSCacheHits = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "rdns_cache_hits",
+			Help: "Number of RDNS enricher LRU cache hits",
+		},
+	)
+	MetricRDNSCacheMisses = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "rdns_cache_misses",
+			Help: "Number of RDNS enricher LRU cache misses",
+		},
+	)
+	MetricRDNSLookups = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "rdns_lookups",
+			Help: "Number of RDNS enricher lookups",
+		},
+		[]string{"status"},
+	)
+)
+
+func init() {
+	prometheus.MustRegister(MetricRDNSCacheSize)
+	prometheus.MustRegister(MetricRDNSCacheHits)
+	prometheus.MustRegister(MetricRDNSCacheMisses)
+	prometheus.MustRegister(MetricRDNSLookups)
 }
 
 func NewRDNSEnricher() RDNSEnricher {
@@ -22,6 +58,7 @@ func NewRDNSEnricher() RDNSEnricher {
 }
 
 func (e *RDNSEnricher) Process(msg map[string]interface{}) map[string]interface{} {
+	MetricRDNSCacheSize.Set(float64(e.cache.Len()))
 	msg = e.add(msg, "src_addr", "src_hostname")
 	msg = e.add(msg, "dst_addr", "dst_hostname")
 	return msg
@@ -35,17 +72,21 @@ func (e *RDNSEnricher) add(msg map[string]interface{}, originalField string, tar
 	addr := addrRaw.(string)
 	value, ok := e.cache.Get(addr)
 	if ok {
+		MetricRDNSCacheHits.Inc()
 		msg[targetField] = value
 		return msg
 	}
+	MetricRDNSCacheMisses.Inc()
 	names, err := net.LookupAddr(addr)
 	if err != nil {
-		// log.Printf("error with net.LookupAddr: %v", err)
+		MetricRDNSLookups.With(prometheus.Labels{"status": "error"}).Inc()
 		return msg
 	}
 	if len(names) == 0 {
+		MetricRDNSLookups.With(prometheus.Labels{"status": "empty"}).Inc()
 		return msg
 	}
+	MetricRDNSLookups.With(prometheus.Labels{"status": "success"}).Inc()
 	sort.Strings(names)
 	value = names[0]
 	e.cache.Add(addr, value)

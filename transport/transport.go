@@ -5,9 +5,30 @@ import (
 	"net"
 
 	goflowpb "github.com/cloudflare/goflow/v3/pb"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sapslaj/morbius/destination"
 	"github.com/sapslaj/morbius/enricher"
 )
+
+var (
+	MetricFlowMessageBatchCount = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "flow_message_batch_count",
+			Help: "Number of flow message batches that have been published to the transport",
+		},
+	)
+	MetricFlowMessageCount = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "flow_message_count",
+			Help: "Number of flow messages that have been published to the transport",
+		},
+	)
+)
+
+func init() {
+	prometheus.MustRegister(MetricFlowMessageBatchCount)
+	prometheus.MustRegister(MetricFlowMessageCount)
+}
 
 type Transport struct {
 	Destinations []destination.Destination
@@ -15,7 +36,9 @@ type Transport struct {
 }
 
 func (s *Transport) Publish(fmsgs []*goflowpb.FlowMessage) {
+	MetricFlowMessageBatchCount.Inc()
 	for _, fmsg := range fmsgs {
+		MetricFlowMessageCount.Inc()
 		ffmsg := s.FormatFlowMessage(fmsg)
 		for _, enricher := range s.Enrichers {
 			ffmsg = enricher.Process(ffmsg)
