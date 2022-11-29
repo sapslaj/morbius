@@ -52,7 +52,7 @@ func NewTransport(dispatchMethod TransportDispatchMethod, destinations []destina
 		DispatchMethod: dispatchMethod,
 	}
 	if t.DispatchMethod == TransportDispatchWorkerPool {
-		t.workerPool = NewWorkerPool(100, t.messageWorkerPublish)
+		t.workerPool = NewWorkerPool(2, 1, t.messageWorkerPublish)
 		t.workerPool.Start()
 	}
 	return t

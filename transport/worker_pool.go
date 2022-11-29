@@ -1,7 +1,6 @@
 package transport
 
 import (
-	"runtime"
 	"sync"
 )
 
@@ -12,9 +11,8 @@ type WorkerPool[V any] struct {
 	wg             sync.WaitGroup
 }
 
-func NewWorkerPool[V any](messageBuffer int, handler func(V)) *WorkerPool[V] {
-	workerCount := runtime.NumCPU()
-	messageChannel := make(chan V, workerCount*messageBuffer)
+func NewWorkerPool[V any](workerCount int, messageBuffer int, handler func(V)) *WorkerPool[V] {
+	messageChannel := make(chan V, messageBuffer)
 	return &WorkerPool[V]{
 		WorkerCount:    workerCount,
 		MessageHandler: handler,
