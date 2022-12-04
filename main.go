@@ -3,10 +3,8 @@ package main
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/cloudflare/goflow/v3/utils"
-	"github.com/elastic/go-elasticsearch/v8/esutil"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sapslaj/morbius/destination"
 	"github.com/sapslaj/morbius/enricher"
@@ -35,17 +33,14 @@ func main() {
 	})
 	enrichers = append(enrichers, &rdnsEnricher)
 
-	lokiDestination := destination.NewLokiDestination(&destination.LokiDestinationConfig{
-		BatchWait:          1 * time.Second,
-		BatchEntriesNumber: 4096,
-	})
+	lokiDestination := destination.NewLokiDestination(&destination.LokiDestinationConfig{})
 	destinations = append(destinations, &lokiDestination)
-	elasticsearchDestination := destination.NewElasticsearchDestination(&destination.ElasticseachDestinationConfig{
-		BulkIndexerConfig: &esutil.BulkIndexerConfig{
-			FlushInterval: 1 * time.Second,
-		},
-	})
-	destinations = append(destinations, &elasticsearchDestination)
+	// elasticsearchDestination := destination.NewElasticsearchDestination(&destination.ElasticseachDestinationConfig{
+	// 	BulkIndexerConfig: &esutil.BulkIndexerConfig{
+	// 		FlushInterval: 1 * time.Second,
+	// 	},
+	// })
+	// destinations = append(destinations, &elasticsearchDestination)
 	// stdoutDestination := destination.NewStdoutDestination(nil)
 	// destinations = append(destinations, &stdoutDestination)
 	// discardDestination := destination.NewDiscardDestination(nil)

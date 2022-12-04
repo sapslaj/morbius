@@ -2,23 +2,31 @@ package destination
 
 import (
 	"encoding/json"
-	"fmt"
-	"strings"
+	"net/url"
+	"os"
 	"time"
 
-	"github.com/sapslaj/morbius/promtail"
+	"github.com/go-kit/log"
+	"github.com/grafana/dskit/backoff"
+	"github.com/grafana/dskit/flagext"
+	"github.com/prometheus/common/model"
+
+	"github.com/sapslaj/morbius/lokiclient"
+	"github.com/sapslaj/morbius/lokiclient/api"
+	lokiflag "github.com/sapslaj/morbius/lokiclient/flagext"
+	"github.com/sapslaj/morbius/lokiclient/logproto"
 )
 
 type LokiDestinationConfig struct {
-	PushURL            string
-	Labels             map[string]string
-	BatchWait          time.Duration
-	BatchEntriesNumber int
+	PushURL      string
+	StaticLabels map[string]string
+	BatchWait    time.Duration
+	BatchSize    int
 }
 
 type LokiDestination struct {
 	Config *LokiDestinationConfig
-	client *promtail.JSONClient
+	client lokiclient.Client
 }
 
 func NewLokiDestination(config *LokiDestinationConfig) LokiDestination {
@@ -26,33 +34,52 @@ func NewLokiDestination(config *LokiDestinationConfig) LokiDestination {
 		config = &LokiDestinationConfig{}
 	}
 	if config.PushURL == "" {
-		// Yes I know this is a deprecated endpoint. The real one is buggy with JSON input.
-		// https://github.com/grafana/loki/issues/4837
 		config.PushURL = "http://localhost:3100/api/prom/push"
 	}
-	if config.Labels == nil {
-		config.Labels = map[string]string{
+	if config.StaticLabels == nil {
+		config.StaticLabels = map[string]string{
 			"job": "netflow",
 		}
 	}
 	if config.BatchWait == 0 {
-		config.BatchWait = 1 * time.Second
+		config.BatchWait = lokiclient.BatchWait
 	}
-	if config.BatchEntriesNumber == 0 {
-		config.BatchEntriesNumber = 10000
+	if config.BatchSize == 0 {
+		config.BatchSize = lokiclient.BatchSize
 	}
-	client, err := promtail.NewClientJson(promtail.ClientConfig{
-		PushURL:            config.PushURL,
-		Labels:             makeLokiLabelString(config.Labels),
-		BatchWait:          config.BatchWait,
-		BatchEntriesNumber: config.BatchEntriesNumber,
-	})
+
+	url, err := url.Parse(config.PushURL)
 	if err != nil {
 		panic(err)
 	}
-	return LokiDestination{
+
+	externalLabels := make(model.LabelSet)
+	for k, v := range config.StaticLabels {
+		externalLabels[model.LabelName(k)] = model.LabelValue(v)
+	}
+	clientConfig := lokiclient.Config{
+		URL:       flagext.URLValue{URL: url},
+		BatchWait: config.BatchWait,
+		BatchSize: config.BatchSize,
+		ExternalLabels: lokiflag.LabelSet{
+			LabelSet: externalLabels,
+		},
+		BackoffConfig: backoff.Config{
+			MaxBackoff: lokiclient.MaxBackoff,
+			MaxRetries: lokiclient.MaxRetries,
+			MinBackoff: lokiclient.MinBackoff,
+		},
+		Timeout: lokiclient.Timeout,
+	}
+	client, err := lokiclient.New(clientConfig, []string{}, 0, log.NewLogfmtLogger(os.Stdout))
+	if err != nil {
+		panic(err)
+	}
+	d := LokiDestination{
+		Config: config,
 		client: client,
 	}
+	return d
 }
 
 func (d *LokiDestination) Publish(msg map[string]interface{}) {
@@ -60,13 +87,10 @@ func (d *LokiDestination) Publish(msg map[string]interface{}) {
 	if err != nil {
 		panic(err)
 	}
-	d.client.Send(string(result))
-}
-
-func makeLokiLabelString(labels map[string]string) string {
-	var pairs []string
-	for k, v := range labels {
-		pairs = append(pairs, fmt.Sprintf("%s=\"%s\"", k, v))
+	d.client.Chan() <- api.Entry{
+		Entry: logproto.Entry{
+			Timestamp: time.Now(),
+			Line:      string(result),
+		},
 	}
-	return "{" + strings.Join(pairs, ",") + "}"
 }
