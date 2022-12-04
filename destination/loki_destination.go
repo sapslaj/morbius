@@ -2,6 +2,7 @@ package destination
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"os"
 	"time"
@@ -18,10 +19,11 @@ import (
 )
 
 type LokiDestinationConfig struct {
-	PushURL      string
-	StaticLabels map[string]string
-	BatchWait    time.Duration
-	BatchSize    int
+	PushURL       string
+	StaticLabels  map[string]string
+	DynamicLabels []string
+	BatchWait     time.Duration
+	BatchSize     int
 }
 
 type LokiDestination struct {
@@ -40,6 +42,9 @@ func NewLokiDestination(config *LokiDestinationConfig) LokiDestination {
 		config.StaticLabels = map[string]string{
 			"job": "netflow",
 		}
+	}
+	if config.DynamicLabels == nil {
+		config.DynamicLabels = make([]string, 0)
 	}
 	if config.BatchWait == 0 {
 		config.BatchWait = lokiclient.BatchWait
@@ -87,7 +92,16 @@ func (d *LokiDestination) Publish(msg map[string]interface{}) {
 	if err != nil {
 		panic(err)
 	}
+	labelSet := make(model.LabelSet)
+	for _, key := range d.Config.DynamicLabels {
+		value, ok := msg[key]
+		if !ok {
+			continue
+		}
+		labelSet[model.LabelName(key)] = model.LabelValue(fmt.Sprint(value))
+	}
 	d.client.Chan() <- api.Entry{
+		Labels: labelSet,
 		Entry: logproto.Entry{
 			Timestamp: time.Now(),
 			Line:      string(result),
