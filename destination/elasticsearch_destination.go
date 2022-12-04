@@ -17,6 +17,7 @@ type ElasticseachDestinationConfig struct {
 	Index               string
 	TimestampField      string
 	SynchronousIndexing bool
+	ElasticsearchConfig *elasticsearch.Config
 	BulkIndexerConfig   *esutil.BulkIndexerConfig
 }
 
@@ -36,7 +37,14 @@ func NewElasticsearchDestination(config *ElasticseachDestinationConfig) Elastics
 	if config.TimestampField == "" {
 		config.TimestampField = "@timestamp"
 	}
-	client, err := elasticsearch.NewDefaultClient()
+	if config.ElasticsearchConfig == nil {
+		config.ElasticsearchConfig = &elasticsearch.Config{
+			Addresses: []string{
+				"http://127.0.0.1:9200",
+			},
+		}
+	}
+	client, err := elasticsearch.NewClient(*config.ElasticsearchConfig)
 	if err != nil {
 		panic(err)
 	}
