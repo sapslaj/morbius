@@ -1,0 +1,3 @@
+[submodule "enricher/MaxMind-DB"]
+	path = enricher/MaxMind-DB
+	url = https://github.com/maxmind/MaxMind-DB

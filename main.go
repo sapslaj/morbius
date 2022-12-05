@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/cloudflare/goflow/v3/utils"
+	"github.com/elastic/go-elasticsearch/v8/esutil"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sapslaj/morbius/destination"
 	"github.com/sapslaj/morbius/enricher"
@@ -32,15 +34,25 @@ func main() {
 		CacheOnly:   false,
 	})
 	enrichers = append(enrichers, &rdnsEnricher)
+	maxmindDBEnricher := enricher.NewMaxmindDBEnricher(&enricher.MaxmindDBEnricherConfig{
+		EnableCache: false,
+		Locale:      "en",
+		DatabasePaths: []string{
+			"./GeoLite2-ASN.mmdb",
+			"./GeoLite2-City.mmdb",
+		},
+		EnabledFields: enricher.MaxmindDBEnricherFields_MaximumMisery,
+	})
+	enrichers = append(enrichers, &maxmindDBEnricher)
 
 	lokiDestination := destination.NewLokiDestination(&destination.LokiDestinationConfig{})
 	destinations = append(destinations, &lokiDestination)
-	// elasticsearchDestination := destination.NewElasticsearchDestination(&destination.ElasticseachDestinationConfig{
-	// 	BulkIndexerConfig: &esutil.BulkIndexerConfig{
-	// 		FlushInterval: 1 * time.Second,
-	// 	},
-	// })
-	// destinations = append(destinations, &elasticsearchDestination)
+	elasticsearchDestination := destination.NewElasticsearchDestination(&destination.ElasticseachDestinationConfig{
+		BulkIndexerConfig: &esutil.BulkIndexerConfig{
+			FlushInterval: 1 * time.Second,
+		},
+	})
+	destinations = append(destinations, &elasticsearchDestination)
 	// stdoutDestination := destination.NewStdoutDestination(nil)
 	// destinations = append(destinations, &stdoutDestination)
 	// discardDestination := destination.NewDiscardDestination(nil)

@@ -10,6 +10,7 @@ It uses [GoFlow from Cloudflare](https://github.com/cloudflare/goflow) to collec
 
 * `ProtonamesEnricher` - adds protocol and etype names based on a lookup table
 * `RDNSEnricher` - adds rDNS hostname based on IP address fields
+* `MaxmindDBEnricher` - adds IP address information from a [MaxMind DB](https://github.com/maxmind/MaxMind-DB)
 
 ### Destinations
 
