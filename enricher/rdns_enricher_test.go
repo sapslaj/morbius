@@ -66,8 +66,8 @@ func TestRDNSEnricher(t *testing.T) {
 
 	for _, tc := range tests {
 		got := pe.Process(tc.input)
-		if !cmp.Equal(tc.want, got) {
-			t.Fatalf("\"%s\": expected: %v, got: %v", tc.desc, tc.want, got)
+		if diff := cmp.Diff(tc.want, got); diff != "" {
+			t.Fatalf("\"%s\":\n%s", tc.desc, diff)
 		}
 	}
 }

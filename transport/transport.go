@@ -114,8 +114,14 @@ func (s *Transport) FormatFlowMessage(fmsg *goflowpb.FlowMessage) map[string]int
 	msg["time_flow_end"] = int(fmsg.TimeFlowEnd)
 	msg["bytes"] = int(fmsg.Bytes)
 	msg["packets"] = int(fmsg.Packets)
-	msg["src_addr"] = net.IP(fmsg.SrcAddr).String()
-	msg["dst_addr"] = net.IP(fmsg.DstAddr).String()
+
+	if fmsg.SrcAddr != nil {
+		msg["src_addr"] = net.IP(fmsg.SrcAddr).String()
+	}
+	if fmsg.DstAddr != nil {
+		msg["dst_addr"] = net.IP(fmsg.DstAddr).String()
+	}
+
 	msg["ethernet_type"] = int(fmsg.Etype)
 	msg["proto"] = int(fmsg.Proto)
 	msg["src_port"] = int(fmsg.SrcPort)

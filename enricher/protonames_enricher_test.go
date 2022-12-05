@@ -29,8 +29,8 @@ func TestProtonamesEnricher(t *testing.T) {
 		},
 		{
 			desc:  "Does not add protocol name if protocol number is unknown",
-			input: map[string]interface{}{"protocol": 69},
-			want:  map[string]interface{}{"protocol": 69},
+			input: map[string]interface{}{"proto": 69},
+			want:  map[string]interface{}{"proto": 69},
 		},
 		{
 			desc:  "Adds an etype name for a known etype",
@@ -56,8 +56,8 @@ func TestProtonamesEnricher(t *testing.T) {
 
 	for _, tc := range tests {
 		got := pe.Process(tc.input)
-		if !cmp.Equal(tc.want, got) {
-			t.Fatalf("\"%s\": expected: %v, got: %v", tc.desc, tc.want, got)
+		if diff := cmp.Diff(tc.want, got); diff != "" {
+			t.Fatalf("\"%s\":\n%s", tc.desc, diff)
 		}
 	}
 }
