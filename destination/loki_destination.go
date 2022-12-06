@@ -19,11 +19,12 @@ import (
 )
 
 type LokiDestinationConfig struct {
-	PushURL       string
-	StaticLabels  map[string]string
-	DynamicLabels []string
-	BatchWait     time.Duration
-	BatchSize     int
+	PushURL        string
+	StaticLabels   map[string]string
+	DynamicLabels  []string
+	BatchWait      time.Duration
+	BatchSize      int
+	MakeLokiSuffer bool
 }
 
 type LokiDestination struct {
@@ -93,12 +94,18 @@ func (d *LokiDestination) Publish(msg map[string]interface{}) {
 		panic(err)
 	}
 	labelSet := make(model.LabelSet)
-	for _, key := range d.Config.DynamicLabels {
-		value, ok := msg[key]
-		if !ok {
-			continue
+	if d.Config.MakeLokiSuffer {
+		for key, value := range msg {
+			labelSet[model.LabelName(key)] = model.LabelValue(fmt.Sprint(value))
 		}
-		labelSet[model.LabelName(key)] = model.LabelValue(fmt.Sprint(value))
+	} else {
+		for _, key := range d.Config.DynamicLabels {
+			value, ok := msg[key]
+			if !ok {
+				continue
+			}
+			labelSet[model.LabelName(key)] = model.LabelValue(fmt.Sprint(value))
+		}
 	}
 	d.client.Chan() <- api.Entry{
 		Labels: labelSet,
