@@ -10,11 +10,55 @@ import (
 	"github.com/sapslaj/morbius/syncmap"
 )
 
+var (
+	MetricPrometheusMetricStoreSize = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "prom_metric_store_size",
+			Help: "size of the Prometheus metric store",
+		},
+	)
+	MetricPrometheusMetricStoreGCSeconds = prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Name:    "prom_metric_store_gc_seconds",
+			Help:    "Seconds and count of metric store GC job",
+			Buckets: []float64{0, .0001, .00025, .0005, .00075, .001, .0025, .005, .0075, .01, .025, .05, .075, .1, .25, .5, .75, 1},
+		},
+	)
+	MetricPrometheusMetricStoreLastGCSeconds = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "prom_metric_store_last_gc_seconds",
+			Help: "Duration of last metric store GC job run",
+		},
+	)
+	MetricPrometheusMetricStoreEvictionCount = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "prom_metric_store_eviction_count",
+			Help: "Number of metrics evicted based on visibility timeout",
+		},
+	)
+	MetricPrometheusMetricStoreLastEvictionCount = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "prom_metric_store_last_eviction_count",
+			Help: "Number of metrics evicted based on visibility timeout on the last GC job run",
+		},
+	)
+)
+
+func init() {
+	prometheus.MustRegister(MetricPrometheusMetricStoreSize)
+	prometheus.MustRegister(MetricPrometheusMetricStoreGCSeconds)
+	prometheus.MustRegister(MetricPrometheusMetricStoreLastGCSeconds)
+	prometheus.MustRegister(MetricPrometheusMetricStoreEvictionCount)
+	prometheus.MustRegister(MetricPrometheusMetricStoreLastEvictionCount)
+}
+
 type PrometheusDestinationConfig struct {
-	Namespace    string
-	MetricLabels []string
-	CountBytes   bool
-	CountPackets bool
+	Namespace         string
+	MetricLabels      []string
+	CountBytes        bool
+	CountPackets      bool
+	VisibilityTimeout time.Duration
+	GCInterval        time.Duration
 }
 
 type prometheusDestinationMetric struct {
@@ -41,6 +85,12 @@ func NewPrometheusDestination(config *PrometheusDestinationConfig) PrometheusDes
 	if config.Namespace == "" {
 		config.Namespace = "netflow"
 	}
+	if config.VisibilityTimeout == 0 {
+		config.VisibilityTimeout = 5 * time.Minute
+	}
+	if config.GCInterval == 0 {
+		config.GCInterval = 15 * time.Second
+	}
 	metricStore, err := syncmap.NewMap[uint64, *prometheusDestinationMetric]()
 	if err != nil {
 		panic(err)
@@ -66,6 +116,7 @@ func NewPrometheusDestination(config *PrometheusDestinationConfig) PrometheusDes
 		)
 	}
 	prometheus.MustRegister(&d)
+	d.startMetricStoreGC()
 	return d
 }
 
@@ -114,7 +165,7 @@ func (d *PrometheusDestination) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (d *PrometheusDestination) Collect(ch chan<- prometheus.Metric) {
-	d.metricStore.Range(func(key uint64, metric *prometheusDestinationMetric) bool {
+	d.metricStore.Range(func(hash uint64, metric *prometheusDestinationMetric) bool {
 		labelValues := make([]string, 0)
 		for _, key := range d.Config.MetricLabels {
 			labelValues = append(labelValues, metric.labels[key])
@@ -127,4 +178,38 @@ func (d *PrometheusDestination) Collect(ch chan<- prometheus.Metric) {
 		}
 		return true
 	})
+}
+
+func (d *PrometheusDestination) metricStoreGC() {
+	storeSize := 0
+	evictions := 0
+	d.metricStore.Range(func(hash uint64, metric *prometheusDestinationMetric) bool {
+		threshold := time.Now().Add(-d.Config.VisibilityTimeout)
+		if metric.lastReceive.Before(threshold) {
+			d.metricStore.Delete(hash)
+			evictions++
+			MetricPrometheusMetricStoreEvictionCount.Inc()
+		} else {
+			storeSize++
+		}
+		return true
+	})
+	MetricPrometheusMetricStoreLastEvictionCount.Set(float64(evictions))
+	MetricPrometheusMetricStoreSize.Set(float64(storeSize))
+}
+
+func (d *PrometheusDestination) startMetricStoreGC() {
+	go func() {
+		for {
+			start := time.Now()
+			d.metricStoreGC()
+			duration := time.Since(start)
+			MetricPrometheusMetricStoreLastGCSeconds.Set(duration.Seconds())
+			MetricPrometheusMetricStoreGCSeconds.Observe(duration.Seconds())
+			timeUntilNext := d.Config.GCInterval - duration
+			if timeUntilNext > 0 {
+				time.Sleep(timeUntilNext)
+			}
+		}
+	}()
 }
