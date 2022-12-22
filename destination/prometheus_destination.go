@@ -53,21 +53,24 @@ func init() {
 }
 
 type PrometheusDestinationConfig struct {
-	Namespace         string
-	MetricLabels      []string
-	CountBytes        bool
-	CountPackets      bool
-	CountFlows        bool
-	VisibilityTimeout time.Duration
-	GCInterval        time.Duration
+	Namespace           string
+	MetricLabels        []string
+	CountBytes          bool
+	CountPackets        bool
+	CountFlows          bool
+	ObserveFlowDuration bool
+	FlowDurationBuckets []float64
+	VisibilityTimeout   time.Duration
+	GCInterval          time.Duration
 }
 
 type prometheusDestinationMetric struct {
-	bytes       uint64
-	packets     uint64
-	flows       uint64
-	lastReceive time.Time
-	labels      prometheus.Labels
+	labels       prometheus.Labels
+	lastReceive  time.Time
+	bytes        uint64
+	packets      uint64
+	flows        uint64
+	flowDuration prometheus.Histogram
 }
 
 type PrometheusDestination struct {
@@ -75,15 +78,17 @@ type PrometheusDestination struct {
 	byteCounterDesc   *prometheus.Desc
 	packetCounterDesc *prometheus.Desc
 	flowCounterDesc   *prometheus.Desc
+	flowDurationDesc  *prometheus.Desc
 	metricStore       *syncmap.Map[uint64, *prometheusDestinationMetric]
 }
 
 func NewPrometheusDestination(config *PrometheusDestinationConfig) PrometheusDestination {
 	if config == nil {
 		config = &PrometheusDestinationConfig{
-			CountBytes:   true,
-			CountPackets: true,
-			CountFlows:   true,
+			CountBytes:          true,
+			CountPackets:        true,
+			CountFlows:          true,
+			ObserveFlowDuration: true,
 		}
 	}
 	if config.Namespace == "" {
@@ -94,6 +99,9 @@ func NewPrometheusDestination(config *PrometheusDestinationConfig) PrometheusDes
 	}
 	if config.GCInterval == 0 {
 		config.GCInterval = 15 * time.Second
+	}
+	if config.FlowDurationBuckets == nil {
+		config.FlowDurationBuckets = prometheus.DefBuckets
 	}
 	metricStore, err := syncmap.NewMap[uint64, *prometheusDestinationMetric]()
 	if err != nil {
@@ -127,6 +135,14 @@ func NewPrometheusDestination(config *PrometheusDestinationConfig) PrometheusDes
 			nil,
 		)
 	}
+	if d.Config.ObserveFlowDuration {
+		d.flowDurationDesc = prometheus.NewDesc(
+			fmt.Sprintf("%s_flow_duration_seconds", d.Config.Namespace),
+			"Duration of flow based on start and end timestamps",
+			d.Config.MetricLabels,
+			nil,
+		)
+	}
 	prometheus.MustRegister(&d)
 	d.startMetricStoreGC()
 	return d
@@ -143,9 +159,6 @@ func (d *PrometheusDestination) Publish(msg map[string]interface{}) {
 		}
 	}
 
-	bytes := uint64(msg["bytes"].(int))
-	packets := uint64(msg["packets"].(int))
-
 	hash, err := hashstructure.Hash(promLabels, hashstructure.FormatV2, nil)
 	if err != nil {
 		panic(err)
@@ -156,17 +169,53 @@ func (d *PrometheusDestination) Publish(msg map[string]interface{}) {
 		metric = &prometheusDestinationMetric{
 			labels: promLabels,
 		}
+		if d.Config.ObserveFlowDuration {
+			metric.flowDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
+				Namespace:   d.Config.Namespace,
+				Name:        "flow_duration_seconds",
+				Buckets:     d.Config.FlowDurationBuckets,
+				ConstLabels: promLabels,
+			})
+		}
 		d.metricStore.Store(hash, metric)
 	}
 	metric.lastReceive = time.Now()
 	if d.Config.CountBytes {
-		atomic.AddUint64(&metric.bytes, bytes)
+		if bytes, ok := msg["bytes"].(int); ok {
+			atomic.AddUint64(&metric.bytes, uint64(bytes))
+		}
 	}
 	if d.Config.CountPackets {
-		atomic.AddUint64(&metric.packets, packets)
+		if packets, ok := msg["packets"].(int); ok {
+			atomic.AddUint64(&metric.packets, uint64(packets))
+		}
 	}
 	if d.Config.CountFlows {
 		atomic.AddUint64(&metric.flows, uint64(1))
+	}
+	if d.Config.ObserveFlowDuration {
+		flowDuration, ok := func(msg map[string]interface{}) (time.Duration, bool) {
+			flowStartRaw, ok := msg["time_flow_start"]
+			if !ok {
+				return 0, ok
+			}
+			flowStart, ok := flowStartRaw.(int)
+			if !ok {
+				return 0, ok
+			}
+			flowEndRaw, ok := msg["time_flow_end"]
+			if !ok {
+				return 0, ok
+			}
+			flowEnd, ok := flowEndRaw.(int)
+			if !ok {
+				return 0, ok
+			}
+			return time.Duration(flowEnd-flowStart) * time.Second, true
+		}(msg)
+		if ok {
+			metric.flowDuration.Observe(flowDuration.Seconds())
+		}
 	}
 }
 
@@ -193,6 +242,9 @@ func (d *PrometheusDestination) Collect(ch chan<- prometheus.Metric) {
 		}
 		if d.flowCounterDesc != nil {
 			ch <- prometheus.MustNewConstMetric(d.flowCounterDesc, prometheus.CounterValue, float64(metric.flows), labelValues...)
+		}
+		if d.flowDurationDesc != nil {
+			ch <- metric.flowDuration
 		}
 		return true
 	})
