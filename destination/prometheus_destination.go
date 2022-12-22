@@ -57,6 +57,7 @@ type PrometheusDestinationConfig struct {
 	MetricLabels      []string
 	CountBytes        bool
 	CountPackets      bool
+	CountFlows        bool
 	VisibilityTimeout time.Duration
 	GCInterval        time.Duration
 }
@@ -64,6 +65,7 @@ type PrometheusDestinationConfig struct {
 type prometheusDestinationMetric struct {
 	bytes       uint64
 	packets     uint64
+	flows       uint64
 	lastReceive time.Time
 	labels      prometheus.Labels
 }
@@ -72,6 +74,7 @@ type PrometheusDestination struct {
 	Config            *PrometheusDestinationConfig
 	byteCounterDesc   *prometheus.Desc
 	packetCounterDesc *prometheus.Desc
+	flowCounterDesc   *prometheus.Desc
 	metricStore       *syncmap.Map[uint64, *prometheusDestinationMetric]
 }
 
@@ -80,6 +83,7 @@ func NewPrometheusDestination(config *PrometheusDestinationConfig) PrometheusDes
 		config = &PrometheusDestinationConfig{
 			CountBytes:   true,
 			CountPackets: true,
+			CountFlows:   true,
 		}
 	}
 	if config.Namespace == "" {
@@ -110,6 +114,14 @@ func NewPrometheusDestination(config *PrometheusDestinationConfig) PrometheusDes
 	if d.Config.CountPackets {
 		d.packetCounterDesc = prometheus.NewDesc(
 			fmt.Sprintf("%s_packets", d.Config.Namespace),
+			"Total number of packets",
+			d.Config.MetricLabels,
+			nil,
+		)
+	}
+	if d.Config.CountFlows {
+		d.flowCounterDesc = prometheus.NewDesc(
+			fmt.Sprintf("%s_flows", d.Config.Namespace),
 			"Total number of packets",
 			d.Config.MetricLabels,
 			nil,
@@ -153,6 +165,9 @@ func (d *PrometheusDestination) Publish(msg map[string]interface{}) {
 	if d.Config.CountPackets {
 		atomic.AddUint64(&metric.packets, packets)
 	}
+	if d.Config.CountFlows {
+		atomic.AddUint64(&metric.flows, uint64(1))
+	}
 }
 
 func (d *PrometheusDestination) Describe(ch chan<- *prometheus.Desc) {
@@ -175,6 +190,9 @@ func (d *PrometheusDestination) Collect(ch chan<- prometheus.Metric) {
 		}
 		if d.packetCounterDesc != nil {
 			ch <- prometheus.MustNewConstMetric(d.packetCounterDesc, prometheus.CounterValue, float64(metric.packets), labelValues...)
+		}
+		if d.flowCounterDesc != nil {
+			ch <- prometheus.MustNewConstMetric(d.flowCounterDesc, prometheus.CounterValue, float64(metric.flows), labelValues...)
 		}
 		return true
 	})
