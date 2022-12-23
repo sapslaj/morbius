@@ -35,12 +35,13 @@ func mergeDefaultServerPortConfig(in *ServerPortConfig, port int) *ServerPortCon
 }
 
 type ServerConfig struct {
-	Transport Transport
-	Logger    Logger
-	NetFlowV5 *ServerPortConfig `yaml:"netflowv5"`
-	NetFlowV9 *ServerPortConfig `yaml:"netflowv9"`
-	SFlow     *ServerPortConfig `yaml:"sflow"`
-	HTTP      *ServerPortConfig `yaml:"http"`
+	Transport    Transport
+	Logger       Logger
+	NetFlowV5    *ServerPortConfig `yaml:"netflowv5"`
+	NetFlowV9    *ServerPortConfig `yaml:"netflowv9"`
+	SFlow        *ServerPortConfig `yaml:"sflow"`
+	HTTP         *ServerPortConfig `yaml:"http"`
+	NoFunAllowed bool              `yaml:"no_fun_allowed"`
 }
 
 type Server struct {

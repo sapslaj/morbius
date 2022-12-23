@@ -14,9 +14,10 @@ import (
 )
 
 type ElasticseachDestinationConfig struct {
-	Index               string `yaml:"index"`
-	TimestampField      string `yaml:"timestamp_field"`
-	SynchronousIndexing bool   `yaml:"synchronous_indexing"`
+	Index               string   `yaml:"index"`
+	TimestampField      string   `yaml:"timestamp_field"`
+	SynchronousIndexing bool     `yaml:"synchronous_indexing"`
+	Addresses           []string `yaml:"addresses"`
 	ElasticsearchConfig *elasticsearch.Config
 	BulkIndexerConfig   *esutil.BulkIndexerConfig
 }
@@ -37,11 +38,14 @@ func NewElasticsearchDestination(config *ElasticseachDestinationConfig) Elastics
 	if config.TimestampField == "" {
 		config.TimestampField = "@timestamp"
 	}
+	if config.Addresses == nil {
+		config.Addresses = []string{
+			"http://127.0.0.1:9200",
+		}
+	}
 	if config.ElasticsearchConfig == nil {
 		config.ElasticsearchConfig = &elasticsearch.Config{
-			Addresses: []string{
-				"http://127.0.0.1:9200",
-			},
+			Addresses: config.Addresses,
 		}
 	}
 	client, err := elasticsearch.NewClient(*config.ElasticsearchConfig)

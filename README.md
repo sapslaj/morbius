@@ -15,9 +15,10 @@ It uses [GoFlow from Cloudflare](https://github.com/cloudflare/goflow) to collec
 ### Destinations
 
 * `DiscardDestination` - A dummy destination that simply does a JSON marshall and then throws the result away. Used mainly in development.
-* `StdoutDestination` - Outputs the flow to stdout in JSON format. Useful for testing and debugging.
-* `ElasticsearchDestination` - Indexes the flow into an [Elasticsearch](https://www.elastic.co/elasticsearch/) index
-* `LokiDestination` - Pushes the flow to [Loki](https://grafana.com/oss/loki/)
+* `StdoutDestination` - Outputs the flow to stdout in JSON or logfmt format. Useful for testing and debugging.
+* `ElasticsearchDestination` - Indexes the flow into an [Elasticsearch](https://www.elastic.co/elasticsearch/) index.
+* `LokiDestination` - Pushes the flow to [Loki](https://grafana.com/oss/loki/).
+* `PrometheusDestination` - Aggregates flow information info metrics and exposes those in the `:http/metrics` endpoint.
 
 ## Use Case
 
@@ -25,4 +26,62 @@ I wanted something that could process NetFlow records on a small-ish scale, like
 
 ## How to use it
 
-A bunch of stuff is still hardcoded but it's mostly controllable from the top level `main.go`. If you want you can implement your own `main` and use this as a library as well. Actual configuration system and deployment method are WIP.
+Configuration is done via a YAML file. The path to file can be passed with the flag `-config-file`. It defaults to reading `./config.yaml` in the current working directory. An annotated example config file is present at `config.example.yaml`. Using the `-print-config` flag can help debug configuration issues.
+
+It's probably a good idea to create a new config from scratch and only use the example as reference. Here's a decent minimal config to build on with Loki and Prometheus destinations enabled:
+
+```yaml
+server:
+  netflowv5:
+    enable: true
+  netflowv9:
+    enable: true
+  sflow:
+    enable: true
+  http:
+    enable: true
+enrichers:
+  proto_names:
+    enable: true
+  rdns:
+    enable: true
+    enable_cache: true
+    cache_size: 2048
+  maxmind_db:
+    enable: true
+    enable_cache: true
+    cache_size: 128
+    database_paths:
+      - /opt/MaxmindDB/GeoLite2-ASN.mmdb
+      - /opt/MaxmindDB/GeoLite2-City.mmdb
+    enabled_field_groups:
+      - asn
+      - city
+destinations:
+  loki:
+    push_url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+    static_labels:
+      job: netflow
+    dynamic_labels:
+      - dst_addr
+      - src_addr
+  prometheus:
+    count_bytes: true
+    count_packets: true
+    export_ip_info: true
+    ip_info_labels:
+      - addr
+      - hostname
+      - asn_org
+      - asn
+      - city_name
+      - connection_type
+      - continent_name
+      - country_name
+    metric_labels:
+      - dst_addr
+      - dst_port
+      - src_port
+      - src_addr
+      - protocol_name
+```

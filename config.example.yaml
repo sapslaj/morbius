@@ -1,0 +1,205 @@
+# Top level server configuration. Mainly used for configuring enabled flow
+# protocols and ports
+server:
+
+  # At least one flow protocol should be enabled.
+  sflow:
+    # Enable listeners with `enable: true`
+    enable: true
+
+    # Each protocol has a default port associated with it, but it's overridable
+    # by setting `port`
+    port: 6343
+
+    # goflow spins up workers for each flow protocol. By default it is 1 worker
+    # but it might be useful to add more on multi-core systems
+    workers: 2
+
+    # enables port reuse via SO_REUSEADDR and SO_REUSEPORT
+    reuse_port: false
+
+  netflowv5:
+    # By default listeners are disabled, but they can also be disabled
+    # explicitly here.
+    enable: false
+
+  netflowv9:
+    enable: true
+
+    # Each server listens on 0.0.0.0 (all interfaces) by default but that's
+    # tweakable
+    addr: 127.0.0.1
+
+  # Embeded HTTP server is optional, but necessary if you want Prometheus
+  # metrics or profiling information.
+  http:
+    enable: true
+
+    # All options of other protocols are accepted here except for `workers` and
+    # `reuse_port`
+    address: 0.0.0.0
+    port: 9269
+
+# Enricher config
+enrichers:
+
+  # Setting any setting, even a nonsensical one, is good enough to enable it
+  proto_names:
+    morbing: enabled
+
+  rdns:
+    # Enables RDNS LRU lookup cache. This is _very_ highly recommended as
+    # otherwise every single flow makes a network request to do a lookup.
+    enable_cache: true
+
+    # Cache size. Default is 128 but increasing it can being performance
+    # benefits at the cost of memory
+    cache_size: 2048
+
+    # Will only append hostname information to flows where the address is
+    # already in the cache. This is only necessary if you need to squeeze the
+    # most performance out at the cost of accuracy on flows with addresses not
+    # in the cache.
+    cache_only: false
+
+  maxmind_db:
+    # Enables the MaxmindDB LRU lookup cache. This isn't strictly necessary
+    # especially on machines backed by an SSD since disk access is so fast. This
+    # is most useful on machines where disk access is slow like NFS or, god
+    # forbid, a 5400RPM HDD.
+    enable_cache: true
+
+    # Sets the preferred language used for names. If that language is not
+    # available it will fall back to "en" (English).
+    locale: en
+
+    # Paths to GeoIP2 or GeoLite2 mmdb databases. When given multiple DBs the
+    # enricher will merge the results together in the order given with the last
+    # one taking precedence.
+    database_paths:
+      - /opt/MaxmindDB/GeoLite2-ASN.mmdb
+      - /opt/MaxmindDB/GeoLite2-City.mmdb
+
+    # Enable groups of fields to populate each flow. It's usually a good idea to
+    # match these up with the databases you have.
+    enabled_field_groups:
+      - asn
+      - city
+
+    # You can also append on any extra fields you want, or leave out the
+    # `enabled_field_groups` and set all of the enabled fields here.
+    enabled_fields:
+      - asn_org
+      - city_name
+      - country_name
+
+# Destination config
+destinations:
+
+  # The stdout destination is good for debugging or if you want to redirect
+  # stdout to a file for storage. If you are using Loki or Elasticsearch for log
+  # collection it's considered more efficient to use the dedicated destinations
+  # for those.
+  stdout:
+
+    # `json` and `logfmt` are supported
+    format: json
+
+  # Elasticsearch destination config
+  elasticsearch:
+
+    # The ES index to use
+    index: netflow
+
+    # The timestamp field is added based on the time the flow was processed. The
+    # default is `@timestamp`.
+    timestamp_field: '@timestamp'
+
+    # By default the ES client will use a bulk indexer in conjunction with the
+    # _bulk endpoint. If you want to instead use regular indexing endpoints and
+    # index each flow one at a time, set `synchronous_indexing: true`. This is
+    # usually not a good idea and puts undue stress on the cluster, but hey,
+    # it's your infra!
+    synchronous_indexing: false
+
+  # Loki destination config
+  loki:
+
+    # Push URL for loki. This is set up assuming it is running in Kubernetes but
+    # by default it will try to connect to localhost:3100.
+    push_url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+
+    # Static/External labels are labels applied to every log entry. Stuff like
+    # the `job` label or what cluster this is running in are good things to put
+    # here.
+    static_labels:
+      job: netflow
+      cluster: letolab-us-east-1
+
+    # Dynamic labels are labels extracted from flow messages and added to the
+    # corresponding log entries. It's better to be conservative since Loki
+    # really hates high cardinality labels but query performance can be really
+    # attrocious without a handful of labels indexed. Experiment and find the
+    # right balance for your workload.
+    dynamic_labels:
+      - dst_addr
+      - src_addr
+
+  # Prometheus destination config
+  prometheus:
+
+    # Metrics namespace. Default is `netflow`
+    namespace: netflow
+
+    # Enables aggregate byte counting
+    count_bytes: true
+
+    # Enables aggregate packet counting
+    count_packets: true
+
+    # Enables aggregate flow counting
+    count_flows: true
+
+    # Labels to use for aggregate metrics. Prometheus does not like lots of high
+    # cardinality metrics so unless you have shitloads of RAM it's a good idea
+    # to be conservative here and join on the  `_ip_info` metric described
+    # below.
+    metric_labels:
+      - dst_addr
+      - src_addr
+
+    # Enables generating an `_ip_info` info metric containing all of the labels
+    # in the `ip_info_labels` config option. This is useful for memory
+    # constrained Prometheus servers that can't handle very high cardinalities
+    # in the aggregate metrics. These info metrics can be joined on to query
+    # address information instead of duplicating and storing it in metric
+    # labels. The downside is joins in PromQL are a pain the ass so query
+    # complexity goes way up.
+    export_ip_info: true
+    ip_info_labels:
+      - addr
+      - hostname
+      - asn_org
+      - asn
+      - city_name
+      - continent_name
+      - country_name
+      - loc_lat
+      - loc_long
+      - organization
+
+    # Enables generating histogram metrics based on the flow start and end
+    # timestamps in the flow. The resolution of the flow timestamps are 1 second
+    # so this not very useful in most circumstances as most flows are shorter
+    # than 1 second.
+    observe_flow_duration: false
+
+    # The Prometheus destination implements its own metrics persistence in order
+    # to conserve memory. One of the benefits of this is there is a "GC" process
+    # that runs on a certain interval (`gc_interval`) that will clear away
+    # metrics which haven't been touched in a certain time period
+    # `visibility_timeout`. After a metric has been GC'd and it gets hit again
+    # it will register as a reset to zero to Promtheus so `rate` queries will be
+    # handled gracefully.
+    gc_interval: 15s
+    visibility_timeout: 5m
