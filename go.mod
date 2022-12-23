@@ -7,12 +7,15 @@ require (
 	github.com/cloudflare/goflow/v3 v3.4.4
 	github.com/elastic/go-elasticsearch/v8 v8.5.0
 	github.com/go-kit/log v0.2.1
+	github.com/go-logfmt/logfmt v0.5.1
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/snappy v0.0.4
 	github.com/google/go-cmp v0.5.9
 	github.com/grafana/dskit v0.0.0-20220928083349-b1b307db4f30
 	github.com/hashicorp/golang-lru/v2 v2.0.1
 	github.com/json-iterator/go v1.1.12
+	github.com/kr/pretty v0.3.1
+	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/oschwald/maxminddb-golang v1.10.0
 	github.com/prometheus/client_golang v1.13.0
@@ -29,15 +32,12 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dennwc/varint v1.0.0 // indirect
 	github.com/elastic/elastic-transport-go/v8 v8.0.0-20211216131617-bbee439d559c // indirect
-	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/grafana/regexp v0.0.0-20221005093135-b4c2bcb0a4b6 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
-	github.com/kr/pretty v0.2.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/libp2p/go-reuseport v0.0.1 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
-	github.com/mitchellh/hashstructure/v2 v2.0.2 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
@@ -45,6 +45,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
+	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/goleak v1.2.0 // indirect

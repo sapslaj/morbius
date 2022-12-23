@@ -3,6 +3,7 @@ package transport
 import (
 	"encoding/binary"
 	"net"
+	"sync/atomic"
 
 	goflowpb "github.com/cloudflare/goflow/v3/pb"
 	"github.com/prometheus/client_golang/prometheus"
@@ -38,22 +39,42 @@ const (
 	TransportDispatchGoroutine  TransportDispatchMethod = iota
 )
 
+var TransportDispatchGoroutineCount int64
+
 type Transport struct {
 	Destinations   []destination.Destination
 	Enrichers      []enricher.Enricher
 	workerPool     *WorkerPool[*goflowpb.FlowMessage]
 	DispatchMethod TransportDispatchMethod
+	MaxGoroutines  int64
 }
 
-func NewTransport(dispatchMethod TransportDispatchMethod, destinations []destination.Destination, enrichers []enricher.Enricher) *Transport {
+func NewLinearTransport(destinations []destination.Destination, enrichers []enricher.Enricher) *Transport {
 	t := &Transport{
 		Destinations:   destinations,
 		Enrichers:      enrichers,
-		DispatchMethod: dispatchMethod,
+		DispatchMethod: TransportDispatchLinear,
 	}
-	if t.DispatchMethod == TransportDispatchWorkerPool {
-		t.workerPool = NewWorkerPool(2, 1, t.messageWorkerPublish)
-		t.workerPool.Start()
+	return t
+}
+
+func NewWorkerPoolTransport(destinations []destination.Destination, enrichers []enricher.Enricher, workerCount, messageBuffer int) *Transport {
+	t := &Transport{
+		Destinations:   destinations,
+		Enrichers:      enrichers,
+		DispatchMethod: TransportDispatchWorkerPool,
+	}
+	t.workerPool = NewWorkerPool(workerCount, messageBuffer, t.messageWorkerPublish)
+	t.workerPool.Start()
+	return t
+}
+
+func NewGoroutineTransport(destinations []destination.Destination, enrichers []enricher.Enricher, maxGoroutines int64) *Transport {
+	t := &Transport{
+		Destinations:   destinations,
+		Enrichers:      enrichers,
+		DispatchMethod: TransportDispatchGoroutine,
+		MaxGoroutines:  maxGoroutines,
 	}
 	return t
 }
@@ -71,8 +92,13 @@ func (s *Transport) Publish(fmsgs []*goflowpb.FlowMessage) {
 		}
 	case TransportDispatchGoroutine:
 		for i := range fmsgs {
+			if s.MaxGoroutines > 0 && TransportDispatchGoroutineCount >= s.MaxGoroutines {
+				return
+			}
+			atomic.AddInt64(&TransportDispatchGoroutineCount, 1)
 			go func(fmesg *goflowpb.FlowMessage) {
 				s.messageWorkerPublish(fmesg)
+				atomic.AddInt64(&TransportDispatchGoroutineCount, -1)
 			}(fmsgs[i])
 		}
 	}
