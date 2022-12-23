@@ -116,9 +116,11 @@ var (
 	}
 
 	MaxmindDBEnricherFields_City = []MaxmindDBEnricherField{
+		MaxmindDBEnricherField_CityName,
 		MaxmindDBEnricherField_ContinentCode,
 		MaxmindDBEnricherField_ContinentName,
 		MaxmindDBEnricherField_CountryCode,
+		MaxmindDBEnricherField_CountryIsInEU,
 		MaxmindDBEnricherField_CountryName,
 		MaxmindDBEnricherField_LocationAccuracyRadius,
 		MaxmindDBEnricherField_LocationLatitude,
@@ -126,6 +128,7 @@ var (
 		MaxmindDBEnricherField_LocationPostalCode,
 		MaxmindDBEnricherField_LocationTimeZone,
 		MaxmindDBEnricherField_RegisteredCountryCode,
+		MaxmindDBEnricherField_RegisteredCountryIsInEU,
 		MaxmindDBEnricherField_RegisteredCountryName,
 		MaxmindDBEnricherField_RepresentedCountryCode,
 		MaxmindDBEnricherField_RepresentedCountryName,
@@ -140,6 +143,10 @@ var (
 		MaxmindDBEnricherField_ContinentName,
 		MaxmindDBEnricherField_CountryCode,
 		MaxmindDBEnricherField_CountryName,
+		MaxmindDBEnricherField_LocationAccuracyRadius,
+		MaxmindDBEnricherField_LocationLatitude,
+		MaxmindDBEnricherField_LocationLongitude,
+		MaxmindDBEnricherField_LocationTimeZone,
 		MaxmindDBEnricherField_RegisteredCountryCode,
 		MaxmindDBEnricherField_RegisteredCountryName,
 		MaxmindDBEnricherField_RepresentedCountryCode,
@@ -245,12 +252,26 @@ func init() {
 }
 
 type MaxmindDBEnricherConfig struct {
-	EnableCache   bool
-	CacheSize     int
-	CacheOnly     bool
-	Locale        string
-	DatabasePaths []string
-	EnabledFields []MaxmindDBEnricherField
+	EnableCache        bool                     `yaml:"enable_cache"`
+	CacheSize          int                      `yaml:"cache_size"`
+	CacheOnly          bool                     `yaml:"cache_only"`
+	Locale             string                   `yaml:"locale"`
+	DatabasePaths      []string                 `yaml:"database_paths"`
+	EnabledFields      []MaxmindDBEnricherField `yaml:"enabled_fields"`
+	EnabledFieldGroups []string                 `yaml:"enabled_field_groups"`
+}
+
+func (c *MaxmindDBEnricherConfig) DedupEnabledFields() []MaxmindDBEnricherField {
+	keys := make(map[MaxmindDBEnricherField]any)
+	list := make([]MaxmindDBEnricherField, 0)
+	for _, field := range c.EnabledFields {
+		if _, present := keys[field]; !present {
+			keys[field] = struct{}{}
+			list = append(list, field)
+		}
+	}
+	c.EnabledFields = list
+	return list
 }
 
 type MaxmindDBEnricherIPData map[MaxmindDBEnricherField]interface{}
@@ -275,12 +296,45 @@ func NewMaxmindDBEnricher(config *MaxmindDBEnricherConfig) MaxmindDBEnricher {
 	if config.DatabasePaths == nil {
 		config.DatabasePaths = make([]string, 0)
 	}
-	if config.EnabledFields == nil {
-		fields := make([]MaxmindDBEnricherField, 1)
-		fields = append(fields, MaxmindDBEnricherFields_ASN...)
-		fields = append(fields, MaxmindDBEnricherFields_City...)
-		config.EnabledFields = fields
+	if config.EnabledFieldGroups == nil && config.EnabledFields == nil {
+		config.EnabledFieldGroups = []string{
+			"asn",
+			"city",
+		}
 	}
+	for _, fgName := range config.EnabledFieldGroups {
+		var fg []MaxmindDBEnricherField
+		switch fgName {
+		case "all":
+			fg = MaxmindDBEnricherFields_All
+		case "maximum_misery":
+			fg = MaxmindDBEnricherFields_MaximumMisery
+		case "anonymous_ip":
+			fg = MaxmindDBEnricherFields_AnonymousIP
+		case "asn":
+			fg = MaxmindDBEnricherFields_ASN
+		case "city":
+			fg = MaxmindDBEnricherFields_City
+		case "connection_type":
+			fg = MaxmindDBEnricherFields_ConnectionType
+		case "country":
+			fg = MaxmindDBEnricherFields_Country
+		case "density_income":
+			fg = MaxmindDBEnricherFields_DensityIncome
+		case "domain":
+			fg = MaxmindDBEnricherFields_Domain
+		case "enterprise":
+			fg = MaxmindDBEnricherFields_Enterprise
+		case "ip_risk":
+			fg = MaxmindDBEnricherFields_IPRisk
+		case "isp":
+			fg = MaxmindDBEnricherFields_ISP
+		case "static_ip_score":
+			fg = MaxmindDBEnricherFields_StaticIPScore
+		}
+		config.EnabledFields = append(config.EnabledFields, fg...)
+	}
+	config.DedupEnabledFields()
 
 	var cache *lru.Cache[string, MaxmindDBEnricherIPData]
 	var err error
