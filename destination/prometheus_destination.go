@@ -184,7 +184,7 @@ func (d *PrometheusDestination) Publish(msg map[string]interface{}) {
 
 	if d.Config.ExportIpInfo {
 		d.storeIpInfoFromMsg(msg, "src_addr", "src_")
-		d.storeIpInfoFromMsg(msg, "src_addr", "dst_")
+		d.storeIpInfoFromMsg(msg, "dst_addr", "dst_")
 		d.storeIpInfoFromMsg(msg, "src_addr_encap", "src_encap_")
 		d.storeIpInfoFromMsg(msg, "dst_addr_encap", "dst_encap_")
 	}
