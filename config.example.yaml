@@ -159,7 +159,8 @@ destinations:
     # it's your infra!
     synchronous_indexing: false
 
-    # Elasticsearch endpoints. By default the client will read from the ELASTICSEARCH_URL environment variable.
+    # Elasticsearch endpoints. By default the client will read from the
+    # ELASTICSEARCH_URL environment variable.
     addresses:
       - http://elasticsearch:9200
 
