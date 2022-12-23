@@ -58,17 +58,17 @@ func init() {
 }
 
 type PrometheusDestinationConfig struct {
-	Namespace           string
-	MetricLabels        []string
-	VisibilityTimeout   time.Duration
-	GCInterval          time.Duration
-	CountBytes          bool
-	CountPackets        bool
-	CountFlows          bool
-	ObserveFlowDuration bool
-	FlowDurationBuckets []float64
-	ExportIpInfo        bool
-	IpInfoLabels        []string
+	Namespace           string        `yaml:"namespace"`
+	MetricLabels        []string      `yaml:"metric_labels"`
+	VisibilityTimeout   time.Duration `yaml:"visibility_timeout"`
+	GCInterval          time.Duration `yaml:"gc_interval"`
+	CountBytes          bool          `yaml:"count_bytes"`
+	CountPackets        bool          `yaml:"count_packets"`
+	CountFlows          bool          `yaml:"count_flows"`
+	ObserveFlowDuration bool          `yaml:"observe_flow_duration"`
+	FlowDurationBuckets []float64     `yaml:"flow_duration_buckets"`
+	ExportIpInfo        bool          `yaml:"export_ip_info"`
+	IpInfoLabels        []string      `yaml:"ip_info_labels"`
 }
 
 type prometheusDestinationMetric struct {

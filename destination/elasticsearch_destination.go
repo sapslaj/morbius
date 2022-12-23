@@ -14,9 +14,9 @@ import (
 )
 
 type ElasticseachDestinationConfig struct {
-	Index               string
-	TimestampField      string
-	SynchronousIndexing bool
+	Index               string `yaml:"index"`
+	TimestampField      string `yaml:"timestamp_field"`
+	SynchronousIndexing bool   `yaml:"synchronous_indexing"`
 	ElasticsearchConfig *elasticsearch.Config
 	BulkIndexerConfig   *esutil.BulkIndexerConfig
 }

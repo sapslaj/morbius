@@ -1,117 +1,40 @@
 package main
 
 import (
-	"fmt"
-	"sync"
-	"time"
+	"flag"
 
-	"github.com/cloudflare/goflow/v3/utils"
-	"github.com/elastic/go-elasticsearch/v8/esutil"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sapslaj/morbius/destination"
-	"github.com/sapslaj/morbius/enricher"
-	"github.com/sapslaj/morbius/transport"
+	"github.com/kr/pretty"
+	"github.com/sapslaj/morbius/config"
 
-	"net/http"
 	_ "net/http/pprof"
 )
 
 func main() {
-	host := "0.0.0.0"
-	v5port := 2055
-	v9port := 2056
-	sFlowPort := 6343
-	httpPort := 6060
+	configFile := flag.String("config-file", "config.yaml", "Path to the config file")
+	c := config.NewFromFile(*configFile)
+	server := c.BuildServer()
+	logger := server.Config.Logger
 
-	var enrichers []enricher.Enricher
-	var destinations []destination.Destination
+	logger.Debugf("%# v", pretty.Formatter(c))
 
-	protnamesEnricher := enricher.NewProtonamesEnricher(nil)
-	enrichers = append(enrichers, &protnamesEnricher)
-	rdnsEnricher := enricher.NewRDNSEnricher(&enricher.RDNSEnricherConfig{
-		EnableCache: true,
-		CacheSize:   2048,
-		CacheOnly:   false,
-	})
-	enrichers = append(enrichers, &rdnsEnricher)
-	maxmindDBEnricher := enricher.NewMaxmindDBEnricher(&enricher.MaxmindDBEnricherConfig{
-		EnableCache: false,
-		Locale:      "en",
-		DatabasePaths: []string{
-			"./GeoLite2-ASN.mmdb",
-			"./GeoLite2-City.mmdb",
-		},
-		EnabledFields: enricher.MaxmindDBEnricherFields_MaximumMisery,
-	})
-	enrichers = append(enrichers, &maxmindDBEnricher)
-
-	lokiDestination := destination.NewLokiDestination(&destination.LokiDestinationConfig{})
-	destinations = append(destinations, &lokiDestination)
-	elasticsearchDestination := destination.NewElasticsearchDestination(&destination.ElasticseachDestinationConfig{
-		BulkIndexerConfig: &esutil.BulkIndexerConfig{
-			FlushInterval: 1 * time.Second,
-		},
-	})
-	destinations = append(destinations, &elasticsearchDestination)
-	// stdoutDestination := destination.NewStdoutDestination(nil)
-	// destinations = append(destinations, &stdoutDestination)
-	// discardDestination := destination.NewDiscardDestination(nil)
-	// destinations = append(destinations, &discardDestination)
-
-	logger := &transport.StderrLogger{}
-	transport := transport.NewTransport(
-		transport.TransportDispatchWorkerPool,
-		destinations,
-		enrichers,
-	)
+	if !server.IsRunnable() {
+		panic("Server is not runnable. Check server configuration.")
+	}
 
 	logger.Printf("It's Morbin' Time!")
-	logger.Printf("v5:\t%s:%d", host, v5port)
-	logger.Printf("v9:\t%s:%d", host, v9port)
-	logger.Printf("sFlow:\t%s:%d", host, sFlowPort)
-	logger.Printf("http:\t%s:%d", host, httpPort)
 
-	sNF5 := utils.StateNFLegacy{
-		Transport: transport,
-		Logger:    logger,
+	if server.Config.NetFlowV5.Enable {
+		logger.Printf("v5:\t%s:%d", server.Config.NetFlowV5.Addr, server.Config.NetFlowV5.Port)
+	}
+	if server.Config.NetFlowV9.Enable {
+		logger.Printf("v9:\t%s:%d", server.Config.NetFlowV9.Addr, server.Config.NetFlowV9.Port)
+	}
+	if server.Config.SFlow.Enable {
+		logger.Printf("sFlow:\t%s:%d", server.Config.SFlow.Addr, server.Config.SFlow.Port)
+	}
+	if server.Config.HTTP.Enable {
+		logger.Printf("http:\t%s:%d", server.Config.HTTP.Addr, server.Config.HTTP.Port)
 	}
 
-	sNF9 := utils.StateNetFlow{
-		Transport: transport,
-		Logger:    logger,
-	}
-
-	sSflow := utils.StateSFlow{
-		Transport: transport,
-		Logger:    logger,
-	}
-
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		logger.Fatal(sNF5.FlowRoutine(1, host, v5port, false))
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		logger.Fatal(sNF9.FlowRoutine(1, host, v9port, false))
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		logger.Fatal(sSflow.FlowRoutine(1, host, sFlowPort, false))
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		http.Handle("/metrics", promhttp.Handler())
-		logger.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%d", host, httpPort), nil))
-	}()
-
-	wg.Wait()
+	server.RunAll()
 }

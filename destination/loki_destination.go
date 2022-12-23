@@ -19,12 +19,12 @@ import (
 )
 
 type LokiDestinationConfig struct {
-	PushURL        string
-	StaticLabels   map[string]string
-	DynamicLabels  []string
-	BatchWait      time.Duration
-	BatchSize      int
-	MakeLokiSuffer bool
+	PushURL        string            `yaml:"push_url"`
+	StaticLabels   map[string]string `yaml:"static_labels"`
+	DynamicLabels  []string          `yaml:"dynamic_labels"`
+	BatchWait      time.Duration     `yaml:"batch_wait"`
+	BatchSize      int               `yaml:"batch_size"`
+	MakeLokiSuffer bool              `yaml:"make_loki_suffer"`
 }
 
 type LokiDestination struct {
@@ -37,7 +37,7 @@ func NewLokiDestination(config *LokiDestinationConfig) LokiDestination {
 		config = &LokiDestinationConfig{}
 	}
 	if config.PushURL == "" {
-		config.PushURL = "http://localhost:3100/api/prom/push"
+		config.PushURL = "http://localhost:3100/loki/api/v1/push"
 	}
 	if config.StaticLabels == nil {
 		config.StaticLabels = map[string]string{
