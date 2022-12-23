@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"text/template"
 
+	"github.com/Masterminds/sprig/v3"
 	"github.com/sapslaj/morbius/destination"
 	"github.com/sapslaj/morbius/enricher"
 	"github.com/sapslaj/morbius/server"
@@ -107,7 +108,7 @@ func (c *Config) BuildDestinations() []destination.Destination {
 
 func (c *Config) renderTemplate(v string, s any) (string, error) {
 	var buf bytes.Buffer
-	tmpl, err := template.New("workerCount").Parse(v)
+	tmpl, err := template.New("config").Funcs(sprig.FuncMap()).Parse(v)
 	if err != nil {
 		return "", fmt.Errorf("Config.renderTemplate: unable to parse template: %w", err)
 	}

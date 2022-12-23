@@ -38,11 +38,6 @@ func NewElasticsearchDestination(config *ElasticseachDestinationConfig) Elastics
 	if config.TimestampField == "" {
 		config.TimestampField = "@timestamp"
 	}
-	if config.Addresses == nil {
-		config.Addresses = []string{
-			"http://127.0.0.1:9200",
-		}
-	}
 	if config.ElasticsearchConfig == nil {
 		config.ElasticsearchConfig = &elasticsearch.Config{
 			Addresses: config.Addresses,

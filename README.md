@@ -44,11 +44,9 @@ enrichers:
   proto_names:
     enable: true
   rdns:
-    enable: true
     enable_cache: true
     cache_size: 2048
   maxmind_db:
-    enable: true
     enable_cache: true
     cache_size: 128
     database_paths:
@@ -68,6 +66,12 @@ destinations:
   prometheus:
     count_bytes: true
     count_packets: true
+    metric_labels:
+      - dst_addr
+      - dst_port
+      - src_port
+      - src_addr
+      - protocol_name
     export_ip_info: true
     ip_info_labels:
       - addr
@@ -78,10 +82,4 @@ destinations:
       - connection_type
       - continent_name
       - country_name
-    metric_labels:
-      - dst_addr
-      - dst_port
-      - src_port
-      - src_addr
-      - protocol_name
 ```

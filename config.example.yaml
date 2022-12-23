@@ -40,6 +40,39 @@ server:
     address: 0.0.0.0
     port: 9269
 
+# Transport/Dispatch settings
+transport:
+
+  # There are three different dispatch methods: `linear`, `worker_pool`, and
+  # `goroutine`. `linear` is essentially single threaded and will process each
+  # message in the order received one at a time. `linear` is the slowest but
+  # least resource intensive. `worker_pool` starts a worker pool and doles out
+  # flow messages to workers. `worker_pool` is the best balance of performance
+  # and resource utilization. `goroutine` spins up a new Goroutine for each flow
+  # message received. It is the most performant but can cause cascading failures
+  # during periods of resource contention.
+  dispatch_method: worker_pool
+
+  # When used with `dispatch_method: worker_pool` this will set the number of
+  # workers. This value can be given as a number (for a static value) or as a
+  # string which is parsed as a Go template. Currently the only variable
+  # provided is `NumCPU` which is the number of the CPUs the current system has.
+  # Includes sprig template functions.
+  worker_count: '{{ .NumCPU }}'
+
+  # When used with `dispatch_method: worker_pool` this is the channel used to
+  # send flow messages to workers can be given a buffer length. Like
+  # `worker_count` is can be a static number or a template string.
+  message_buffer: '{{ mul .NumCPU 4 }}'
+
+  # When used with `dispatch_method: goroutine` this will set a maximum number
+  # of concurrent Goroutines doing flow message processing. Flow messages
+  # received after hitting this ceiling will be dropped. Setting this value to 0
+  # disables the ceiling and allows for as many Goroutines as the system can
+  # handle until it crashes. Like `worker_count` is can be a static number or a
+  # template string.
+  max_goroutines: 1000
+
 # Enricher config
 enrichers:
 
@@ -68,6 +101,10 @@ enrichers:
     # is most useful on machines where disk access is slow like NFS or, god
     # forbid, a 5400RPM HDD.
     enable_cache: true
+
+    # Cache size. Default is 128 but increasing it can being marginal
+    # performance benefits at the cost of memory.
+    cache_size: 128
 
     # Sets the preferred language used for names. If that language is not
     # available it will fall back to "en" (English).
@@ -122,6 +159,10 @@ destinations:
     # it's your infra!
     synchronous_indexing: false
 
+    # Elasticsearch endpoints. By default the client will read from the ELASTICSEARCH_URL environment variable.
+    addresses:
+      - http://elasticsearch:9200
+
   # Loki destination config
   loki:
 
@@ -144,6 +185,14 @@ destinations:
     dynamic_labels:
       - dst_addr
       - src_addr
+
+    # The Loki client is based on Promtail and uses batch pushes to write to
+    # Loki. `batch_wait` is the max amount of time to wait before sending a
+    # batch and `batch_size` is the max batch size (in bytes) to accumulate
+    # before forcefully sending the batch. The defaults are the same as
+    # Promtail's defaults.
+    batch_wait: 1s
+    batch_size: 1048576
 
   # Prometheus destination config
   prometheus:
@@ -193,6 +242,10 @@ destinations:
     # so this not very useful in most circumstances as most flows are shorter
     # than 1 second.
     observe_flow_duration: false
+
+    # If `observe_flow_duration` is enabled, `flow_duration_buckets` sets the
+    # histogram buckets. Defaults to prometheus.DefBuckets
+    flow_duration_buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]
 
     # The Prometheus destination implements its own metrics persistence in order
     # to conserve memory. One of the benefits of this is there is a "GC" process

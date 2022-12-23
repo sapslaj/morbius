@@ -45,9 +45,9 @@ func init() {
 }
 
 type RDNSEnricherConfig struct {
-	EnableCache bool
-	CacheSize   int
-	CacheOnly   bool
+	EnableCache bool `yaml:"enable_cache"`
+	CacheSize   int  `yaml:"cache_size"`
+	CacheOnly   bool `yaml:"cache_only"`
 }
 
 type RDNSEnricher struct {
