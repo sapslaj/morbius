@@ -128,9 +128,10 @@ func (c *Config) BuildTransport() server.Transport {
 	}{
 		NumCPU: runtime.NumCPU(),
 	}
+	parallelizeDestinations := MapGetDefault(c.Transport, "parallelize_destinations", false)
 	switch MapGetDefault(c.Transport, "dispatch_method", "worker_pool") {
 	case "linear":
-		t = transport.NewLinearTransport(destinations, enrichers)
+		t = transport.NewLinearTransport(parallelizeDestinations, destinations, enrichers)
 	case "worker_pool":
 		workerCount := MapGetFunc(c.Transport, "worker_count", func(v any, present bool) int {
 			if !present {
@@ -174,7 +175,7 @@ func (c *Config) BuildTransport() server.Transport {
 				panic(fmt.Errorf("config: BuildTransport: unable to parse message_buffer: invalid type %T", value))
 			}
 		})
-		t = transport.NewWorkerPoolTransport(destinations, enrichers, workerCount, messageBuffer)
+		t = transport.NewWorkerPoolTransport(parallelizeDestinations, destinations, enrichers, workerCount, messageBuffer)
 	case "goroutine":
 		maxGoroutines := MapGetFunc(c.Transport, "max_goroutines", func(v any, present bool) int {
 			if !present {
@@ -197,7 +198,7 @@ func (c *Config) BuildTransport() server.Transport {
 				panic(fmt.Errorf("config: BuildTransport: unable to parse max_goroutines: invalid type %T", value))
 			}
 		})
-		t = transport.NewGoroutineTransport(destinations, enrichers, int64(maxGoroutines))
+		t = transport.NewGoroutineTransport(parallelizeDestinations, destinations, enrichers, int64(maxGoroutines))
 	}
 	return t
 }

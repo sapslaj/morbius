@@ -3,6 +3,7 @@ package transport
 import (
 	"encoding/binary"
 	"net"
+	"sync"
 	"sync/atomic"
 
 	goflowpb "github.com/cloudflare/goflow/v3/pb"
@@ -42,39 +43,43 @@ const (
 var TransportDispatchGoroutineCount int64
 
 type Transport struct {
-	Destinations   []destination.Destination
-	Enrichers      []enricher.Enricher
-	workerPool     *WorkerPool[*goflowpb.FlowMessage]
-	DispatchMethod TransportDispatchMethod
-	MaxGoroutines  int64
+	Destinations            []destination.Destination
+	Enrichers               []enricher.Enricher
+	workerPool              *WorkerPool[*goflowpb.FlowMessage]
+	DispatchMethod          TransportDispatchMethod
+	MaxGoroutines           int64
+	ParallelizeDestinations bool
 }
 
-func NewLinearTransport(destinations []destination.Destination, enrichers []enricher.Enricher) *Transport {
+func NewLinearTransport(parallelizeDestinations bool, destinations []destination.Destination, enrichers []enricher.Enricher) *Transport {
 	t := &Transport{
-		Destinations:   destinations,
-		Enrichers:      enrichers,
-		DispatchMethod: TransportDispatchLinear,
+		Destinations:            destinations,
+		Enrichers:               enrichers,
+		DispatchMethod:          TransportDispatchLinear,
+		ParallelizeDestinations: parallelizeDestinations,
 	}
 	return t
 }
 
-func NewWorkerPoolTransport(destinations []destination.Destination, enrichers []enricher.Enricher, workerCount, messageBuffer int) *Transport {
+func NewWorkerPoolTransport(parallelizeDestinations bool, destinations []destination.Destination, enrichers []enricher.Enricher, workerCount, messageBuffer int) *Transport {
 	t := &Transport{
-		Destinations:   destinations,
-		Enrichers:      enrichers,
-		DispatchMethod: TransportDispatchWorkerPool,
+		Destinations:            destinations,
+		Enrichers:               enrichers,
+		DispatchMethod:          TransportDispatchWorkerPool,
+		ParallelizeDestinations: parallelizeDestinations,
 	}
 	t.workerPool = NewWorkerPool(workerCount, messageBuffer, t.messageWorkerPublish)
 	t.workerPool.Start()
 	return t
 }
 
-func NewGoroutineTransport(destinations []destination.Destination, enrichers []enricher.Enricher, maxGoroutines int64) *Transport {
+func NewGoroutineTransport(parallelizeDestinations bool, destinations []destination.Destination, enrichers []enricher.Enricher, maxGoroutines int64) *Transport {
 	t := &Transport{
-		Destinations:   destinations,
-		Enrichers:      enrichers,
-		DispatchMethod: TransportDispatchGoroutine,
-		MaxGoroutines:  maxGoroutines,
+		Destinations:            destinations,
+		Enrichers:               enrichers,
+		DispatchMethod:          TransportDispatchGoroutine,
+		MaxGoroutines:           maxGoroutines,
+		ParallelizeDestinations: parallelizeDestinations,
 	}
 	return t
 }
@@ -110,8 +115,21 @@ func (s *Transport) messageWorkerPublish(fmsg *goflowpb.FlowMessage) {
 	for _, enricher := range s.Enrichers {
 		ffmsg = enricher.Process(ffmsg)
 	}
-	for _, destination := range s.Destinations {
-		destination.Publish(ffmsg)
+
+	if s.ParallelizeDestinations {
+		var wg sync.WaitGroup
+		for _, d := range s.Destinations {
+			wg.Add(1)
+			go func(d destination.Destination, ffmsg map[string]interface{}) {
+				defer wg.Done()
+				d.Publish(ffmsg)
+			}(d, ffmsg)
+		}
+		wg.Wait()
+	} else {
+		for _, d := range s.Destinations {
+			d.Publish(ffmsg)
+		}
 	}
 }
 

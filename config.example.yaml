@@ -73,6 +73,10 @@ transport:
   # template string.
   max_goroutines: 1000
 
+  # Will execute all pushes to destinations concurrently. Nice performance bump
+  # if your system has the CPUs to spare.
+  parallelize_destinations: true
+
 # Enricher config
 enrichers:
 
