@@ -84,6 +84,10 @@ enrichers:
   proto_names:
     morbing: enabled
 
+  # ...including here
+  addr_type:
+    not_enabled: false
+
   rdns:
     # Enables RDNS LRU lookup cache. This is _very_ highly recommended as
     # otherwise every single flow makes a network request to do a lookup.
