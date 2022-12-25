@@ -21,6 +21,7 @@ type Config struct {
 	Server    *server.ServerConfig   `yaml:"server"`
 	Transport map[string]interface{} `yaml:"transport"` // TODO: better way of handling this (see Config.BuildTransport)
 	Enrichers struct {
+		AddrType   *enricher.AddrTypeEnricherConfig   `yaml:"addr_type"`
 		MaxmindDB  *enricher.MaxmindDBEnricherConfig  `yaml:"maxmind_db"`
 		ProtoNames *enricher.ProtonamesEnricherConfig `yaml:"proto_names"`
 		RDNS       *enricher.RDNSEnricherConfig       `yaml:"rdns"`
@@ -66,6 +67,10 @@ func NewFromBytes(b []byte) *Config {
 
 func (c *Config) BuildEnrichers() []enricher.Enricher {
 	var enrichers []enricher.Enricher
+	if c.Enrichers.AddrType != nil {
+		addrTypeEnricher := enricher.NewAddrTypeEnricher(c.Enrichers.AddrType)
+		enrichers = append(enrichers, &addrTypeEnricher)
+	}
 	if c.Enrichers.MaxmindDB != nil {
 		maxmindDBEnricher := enricher.NewMaxmindDBEnricher(c.Enrichers.MaxmindDB)
 		enrichers = append(enrichers, &maxmindDBEnricher)

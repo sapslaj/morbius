@@ -18,7 +18,7 @@ func TestRDNSEnricher(t *testing.T) {
 
 	tests := []test{
 		{
-			desc:  "Does not modify message if an address filed is not defined",
+			desc:  "Does not modify message if an address field is not defined",
 			input: map[string]interface{}{"other": 69},
 			want:  map[string]interface{}{"other": 69},
 		},
