@@ -18,9 +18,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
-	"github.com/prometheus/prometheus/promql/parser"
 
 	"github.com/sapslaj/morbius/lokiclient/api"
+	"github.com/sapslaj/morbius/lokiclient/labels"
 )
 
 const (
@@ -231,7 +231,7 @@ func (c *client) sendBatch(tenantID string, batch *batch) {
 
 		if err == nil {
 			for _, s := range batch.streams {
-				lbls, err := parser.ParseMetric(s.Labels)
+				lbls, err := labels.ParseMetric(s.Labels)
 				if err != nil {
 					// is this possible?
 					level.Warn(c.logger).Log("msg", "error converting stream label string to label.Labels, cannot update lagging metric", "error", err)

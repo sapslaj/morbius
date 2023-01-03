@@ -5,7 +5,7 @@ import (
 	"unsafe"
 
 	"github.com/prometheus/common/model"
-	"github.com/prometheus/prometheus/model/labels"
+	"github.com/sapslaj/morbius/lokiclient/labels"
 )
 
 // ModelLabelSetToMap convert a model.LabelSet to a map[string]string
