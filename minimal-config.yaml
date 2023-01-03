@@ -1,0 +1,37 @@
+# Minimal configuration that works without any external dependencies. Used for
+# evaluating morbius. See config.example.yaml for a more comprehensive config.
+server:
+  netflowv5:
+    enable: true
+  netflowv9:
+    enable: true
+  sflow:
+    enable: true
+  http:
+    enable: true
+enrichers:
+  addr_type:
+    enable: true
+  proto_names:
+    enable: true
+  rdns:
+    enable_cache: true
+    cache_size: 2048
+destinations:
+  stdout:
+    format: logfmt
+  prometheus:
+    count_bytes: true
+    count_packets: true
+    count_flows: true
+    metric_labels:
+      - dst_addr
+      - dst_addr_type
+      - dst_hostname
+      - ethernet_type_name
+      - protocol_name
+      - sampler_address
+      - src_addr
+      - src_addr_type
+      - src_hostname
+      - type

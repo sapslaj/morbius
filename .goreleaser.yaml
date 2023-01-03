@@ -1,0 +1,130 @@
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
+before:
+  hooks:
+    # You may remove this if you don't use go modules.
+    - go mod tidy
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      # - windows # TODO: currently broken due by github.com/prometheus/prometheus dependency
+      - darwin
+    goarch:
+      - 386
+      - amd64
+      - arm
+      - arm64
+    goarm:
+      - 6
+      - 7
+
+archives:
+  - format: tar.gz
+    # this name template makes the OS and Arch compatible with the results of uname.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # use zip for windows archives
+    format_overrides:
+      - goos: windows
+        format: zip
+
+dockers:
+  - build_flag_templates:
+      - --label=org.opencontainers.image.source=https://github.com/sapslaj/{{.ProjectName}}
+      - --label=org.opencontainers.image.created={{.Date}}
+      - --label=org.opencontainers.image.title={{.ProjectName}}
+      - --label=org.opencontainers.image.revision={{.FullCommit}}
+      - --label=org.opencontainers.image.version={{.Version}}
+      - --platform=linux/amd64
+    use: buildx
+    extra_files:
+      - minimal-config.yaml
+    goos: linux
+    goarch: amd64
+    goarm:
+    image_templates:
+      - ghcr.io/sapslaj/{{ .ProjectName }}:{{ .Version }}-amd64
+      - ghcr.io/sapslaj/{{ .ProjectName }}:latest-amd64
+  - build_flag_templates:
+      - --label=org.opencontainers.image.source=https://github.com/sapslaj/{{.ProjectName}}
+      - --label=org.opencontainers.image.created={{.Date}}
+      - --label=org.opencontainers.image.title={{.ProjectName}}
+      - --label=org.opencontainers.image.revision={{.FullCommit}}
+      - --label=org.opencontainers.image.version={{.Version}}
+      - --platform=linux/arm64/v8
+    use: buildx
+    extra_files:
+      - minimal-config.yaml
+    goos: linux
+    goarch: arm64
+    goarm:
+    image_templates:
+      - ghcr.io/sapslaj/{{ .ProjectName }}:{{ .Version }}-arm64v8
+      - ghcr.io/sapslaj/{{ .ProjectName }}:latest-arm64v8
+  - build_flag_templates:
+      - --label=org.opencontainers.image.source=https://github.com/sapslaj/{{.ProjectName}}
+      - --label=org.opencontainers.image.created={{.Date}}
+      - --label=org.opencontainers.image.title={{.ProjectName}}
+      - --label=org.opencontainers.image.revision={{.FullCommit}}
+      - --label=org.opencontainers.image.version={{.Version}}
+      - --platform=linux/arm/v7
+    use: buildx
+    extra_files:
+      - minimal-config.yaml
+    goos: linux
+    goarch: arm
+    goarm: 7
+    image_templates:
+      - ghcr.io/sapslaj/{{ .ProjectName }}:{{ .Version }}-armv7
+      - ghcr.io/sapslaj/{{ .ProjectName }}:latest-armv7
+  - build_flag_templates:
+      - --label=org.opencontainers.image.source=https://github.com/sapslaj/{{.ProjectName}}
+      - --label=org.opencontainers.image.created={{.Date}}
+      - --label=org.opencontainers.image.title={{.ProjectName}}
+      - --label=org.opencontainers.image.revision={{.FullCommit}}
+      - --label=org.opencontainers.image.version={{.Version}}
+      - --platform=linux/arm/v6
+    use: buildx
+    extra_files:
+      - minimal-config.yaml
+    goos: linux
+    goarch: arm
+    goarm: 6
+    image_templates:
+      - ghcr.io/sapslaj/{{ .ProjectName }}:{{ .Version }}-armv6
+      - ghcr.io/sapslaj/{{ .ProjectName }}:latest-armv6
+docker_manifests:
+  - name_template: ghcr.io/sapslaj/{{ .ProjectName }}:{{ .Version }}
+    image_templates:
+      - ghcr.io/sapslaj/{{ .ProjectName }}:{{ .Version }}-amd64
+      - ghcr.io/sapslaj/{{ .ProjectName }}:{{ .Version }}-arm64v8
+      - ghcr.io/sapslaj/{{ .ProjectName }}:{{ .Version }}-armv7
+      - ghcr.io/sapslaj/{{ .ProjectName }}:{{ .Version }}-armv6
+  - name_template: ghcr.io/sapslaj/{{ .ProjectName }}:latest
+    image_templates:
+      - ghcr.io/sapslaj/{{ .ProjectName }}:latest-amd64
+      - ghcr.io/sapslaj/{{ .ProjectName }}:latest-arm64v8
+      - ghcr.io/sapslaj/{{ .ProjectName }}:latest-armv7
+      - ghcr.io/sapslaj/{{ .ProjectName }}:latest-armv6
+checksum:
+  name_template: checksums.txt
+snapshot:
+  name_template: '{{ incpatch .Version }}-next'
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+
+# The lines beneath this are called `modelines`. See `:help modeline`
+# Feel free to remove those if you don't want/use them.
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
