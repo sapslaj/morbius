@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"os"
 
 	"github.com/kr/pretty"
 	"github.com/sapslaj/morbius/config"
@@ -9,10 +10,21 @@ import (
 	_ "net/http/pprof"
 )
 
+func envWithDefault(key string, def string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return def
+	}
+	return value
+}
+
 func main() {
-	configFile := flag.String("config-file", "config.yaml", "Path to the config file")
-	printConfig := flag.Bool("print-config", false, "Print configuration before starting")
-	flag.Parse()
+	// Cannot use default flagset due to other packages (somewhat infuriatingly)
+	// registering their own flags.
+	f := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	configFile := f.String("config-file", envWithDefault("MORBIUS_CONFIG_FILE", "config.yaml"), "Path to the config file")
+	printConfig := f.Bool("print-config", false, "Print configuration before starting")
+	f.Parse(os.Args[1:])
 
 	c := config.NewFromFile(*configFile)
 	server := c.BuildServer()
