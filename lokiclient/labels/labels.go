@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/cespare/xxhash/v2"
 	"github.com/prometheus/common/model"
@@ -448,8 +449,9 @@ func (ls Labels) ReleaseStrings(release func(string)) {
 func ParseMetric(s string) (result Labels, err error) {
 	var parsingKey bool
 	var parsingValue bool
-	result = New()
-	l := Label{}
+	result = make(Labels, 0)
+	var name strings.Builder
+	var value strings.Builder
 	for pos := 0; pos < len(s); pos++ {
 		b := s[pos]
 		if !parsingKey && !parsingValue {
@@ -478,24 +480,28 @@ func ParseMetric(s string) (result Labels, err error) {
 			if b == ' ' {
 				continue
 			}
-			l.Name += string(b)
+			name.WriteByte(b)
 		}
 		if parsingValue {
 			if b == '"' {
 				parsingValue = false
-				result = append(result, l)
-				l = Label{}
+				result = append(result, Label{
+					Name:  name.String(),
+					Value: value.String(),
+				})
+				name.Reset()
+				value.Reset()
 				continue
 			}
 			if b == '\\' {
 				peek := s[pos+1]
 				if peek == '"' {
-					l.Value += "\""
+					value.WriteRune('"')
 					pos += 1
 					continue
 				}
 			}
-			l.Value += string(b)
+			value.WriteByte(b)
 		}
 	}
 	return

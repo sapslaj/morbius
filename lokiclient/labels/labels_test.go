@@ -788,3 +788,12 @@ func TestParseMetric(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkParseMetric(b *testing.B) {
+  s := "{foo=\"bar\", bar=\"baz\"}"
+  b.ReportAllocs()
+  b.ResetTimer()
+  for i := 0; i < b.N; i++ {
+    ParseMetric(s)
+  }
+}
