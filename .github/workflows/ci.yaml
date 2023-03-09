@@ -10,6 +10,19 @@ on:
       - main
 
 jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ^1.19
+          cache: true
+      - run: go mod download
+      - run: go build -v .
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -22,5 +35,27 @@ jobs:
           go-version: ^1.19
           cache: true
       - run: go mod download
-      - run: go build -v .
-      - run: go test -v ./...
+      - run: go test -v -race -covermode atomic -coverprofile=covprofile ./...
+      - name: Send coverage
+        uses: shogo82148/actions-goveralls@v1
+        with:
+          path-to-profile: covprofile
+  golangci:
+    name: GolangCI
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ^1.19
+          cache: true
+      - run: go mod download
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.51.2
