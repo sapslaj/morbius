@@ -1,0 +1,129 @@
+linters:
+  presets:
+    - bugs
+    - comment
+    - complexity
+    - error
+    - format
+    - import
+    - metalinter
+    - module
+    - performance
+    - sql
+    - style
+    - test
+    - unused
+  disable:
+    - gochecknoinits # TODO
+    - gochecknoglobals # high false-positive rate
+    - exhaustruct # TODO
+    - gci # TODO
+    - gocritic # TODO
+    - goerr113 # TODO
+    - gofumpt # TODO
+    - gomnd # TODO
+    - ireturn # TODO
+    - lll # TODO
+    - nlreturn # TODO
+    - nonamedreturns # TODO
+    - paralleltest # TODO
+    - revive # TODO
+    - rowserrcheck # disabled because of generics. https://github.com/golangci/golangci-lint/issues/2649
+    - stylecheck # TODO
+    - tagliatelle # disabled because we explicitly do not want this
+    - testpackage # TODO
+    - unparam # TODO
+    - varnamelen # TODO
+    - wastedassign # disabled because of generics. https://github.com/golangci/golangci-lint/issues/2649
+    - wrapcheck # TODO
+    - wsl # TODO
+
+
+linters-settings:
+  cyclop:
+    max-complexity: 15
+  funlen:
+    lines: 100
+
+issues:
+  exclude:
+    - Line contains TODO/BUG/FIXME # godox
+    - Profiling endpoint is automatically exposed # gosec
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - dupl
+        - errcheck
+        - funlen
+        - maintidx
+        - forcetypeassert
+        - govet # TODO
+        - goconst
+    - path: lokiclient/
+      linters:
+        - usestdlibvars
+        - testpackage
+        - predeclared
+        - tparallel
+        - nakedret
+        - funlen
+        - containedctx
+        - gocognit
+        - errcheck
+        - errorlint
+        - gofmt
+        - whitespace
+        - gocyclo
+        - cyclop
+        - goimports
+        - dupl
+        - godot
+    - path: config/config\.go
+      linters:
+        - gocognit
+        - cyclop
+    - path: destination/elasticsearch_destination\.go
+      linters:
+        - errchkjson
+        - usestdlibvars
+    - path: destination/prometheus_destination\.go
+      linters:
+        - cyclop
+        - nestif
+        - promlinter
+    - path: destination/stdout_destination\.go
+      linters:
+        - unconvert
+    - path: enricher/maxminddb_enricher\.go
+      linters:
+        - govet # TODO
+        - forcetypeassert
+        - promlinter
+        - nestif
+        - funlen
+        - gocognit
+        - cyclop
+        - gocyclo
+        - gochecknoinits
+    - path: enricher/rdns_enricher\.go
+      linters:
+        - promlinter
+        - forcetypeassert
+    - path: server/server.go
+      linters:
+        - gosec # TODO
+    - path: syncmap/syncmap\.go
+      linters:
+        - dupword
+        - forcetypeassert
+    - path: transport/transport\.go
+      linters:
+        - exhaustive # TODO
+        - promlinter
+        - funlen
+        - errcheck
+        - cyclop
+    - path: main\.go
+      linters:
+        - cyclop
+        - errcheck
