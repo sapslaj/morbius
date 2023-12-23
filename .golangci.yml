@@ -14,23 +14,31 @@ linters:
     - test
     - unused
   disable:
-    - gochecknoinits # TODO
-    - gochecknoglobals # high false-positive rate
+    - depguard # TODO
     - exhaustruct # TODO
     - gci # TODO
+    - gochecknoglobals # high false-positive rate
+    - gochecknoinits # TODO
+    - goconst # TODO
     - gocritic # TODO
     - goerr113 # TODO
     - gofumpt # TODO
     - gomnd # TODO
+    - gosec # TODO
+    - inamedparam # TODO
     - ireturn # TODO
     - lll # TODO
     - nlreturn # TODO
     - nonamedreturns # TODO
     - paralleltest # TODO
+    - perfsprint # TODO
+    - protogetter # TODO
     - revive # TODO
     - rowserrcheck # disabled because of generics. https://github.com/golangci/golangci-lint/issues/2649
     - stylecheck # TODO
+    - tagalign # TODO
     - tagliatelle # disabled because we explicitly do not want this
+    - testifylint # TODO
     - testpackage # TODO
     - unparam # TODO
     - varnamelen # TODO
