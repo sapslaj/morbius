@@ -7,6 +7,8 @@ import (
 
 	"github.com/mitchellh/hashstructure/v2"
 	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/exp/slices"
+
 	"github.com/sapslaj/morbius/syncmap"
 )
 
@@ -119,6 +121,10 @@ func NewPrometheusDestination(config *PrometheusDestinationConfig) PrometheusDes
 	}
 	if config.IpInfoLabels == nil {
 		config.IpInfoLabels = []string{"addr"}
+	}
+	if slices.Contains(config.IpInfoLabels, "addr") {
+		config.IpInfoLabels = append(config.IpInfoLabels, "dst_addr")
+		config.IpInfoLabels = append(config.IpInfoLabels, "src_addr")
 	}
 	metricStore, err := syncmap.NewMap[uint64, *prometheusDestinationMetric]()
 	if err != nil {
@@ -274,6 +280,10 @@ func (d *PrometheusDestination) storeIpInfoFromMsg(msg map[string]interface{}, a
 	for _, label := range d.Config.IpInfoLabels {
 		if value, ok := msg[prefix+label]; ok {
 			promLabels[label] = fmt.Sprint(value)
+		} else if label == "dst_addr" || label == "src_addr" {
+			// special case to duplicate the "addr" label to "dst_addr" and
+			// "src_addr" to make PromQL grouping easier.
+			promLabels[label] = addr
 		} else {
 			// Must set a value otherwise it gets angry
 			promLabels[label] = ""
