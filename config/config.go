@@ -21,10 +21,11 @@ type Config struct {
 	Server    *server.ServerConfig   `yaml:"server"`
 	Transport map[string]interface{} `yaml:"transport"` // TODO: better way of handling this (see Config.BuildTransport)
 	Enrichers struct {
-		AddrType   *enricher.AddrTypeEnricherConfig   `yaml:"addr_type"`
-		MaxmindDB  *enricher.MaxmindDBEnricherConfig  `yaml:"maxmind_db"`
-		ProtoNames *enricher.ProtonamesEnricherConfig `yaml:"proto_names"`
-		RDNS       *enricher.RDNSEnricherConfig       `yaml:"rdns"`
+		AddrType    *enricher.AddrTypeEnricherConfig    `yaml:"addr_type"`
+		MaxmindDB   *enricher.MaxmindDBEnricherConfig   `yaml:"maxmind_db"`
+		ProtoNames  *enricher.ProtonamesEnricherConfig  `yaml:"proto_names"`
+		RDNS        *enricher.RDNSEnricherConfig        `yaml:"rdns"`
+		FieldMapper *enricher.FieldMapperEnricherConfig `yaml:"field_mapper"`
 	} `yaml:"enrichers"`
 	Destinations struct {
 		Discard       *destination.DiscardDestinationConfig      `yaml:"discard"`
@@ -82,6 +83,10 @@ func (c *Config) BuildEnrichers() []enricher.Enricher {
 	if c.Enrichers.RDNS != nil {
 		rdnsEnricher := enricher.NewRDNSEnricher(c.Enrichers.RDNS)
 		enrichers = append(enrichers, &rdnsEnricher)
+	}
+	if c.Enrichers.FieldMapper != nil {
+		fieldMapperEnricher := enricher.NewFieldMapperEnricher(c.Enrichers.FieldMapper)
+		enrichers = append(enrichers, &fieldMapperEnricher)
 	}
 	return enrichers
 }
