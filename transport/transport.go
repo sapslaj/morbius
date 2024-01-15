@@ -109,28 +109,32 @@ func (s *Transport) Publish(fmsgs []*goflowpb.FlowMessage) {
 	}
 }
 
-func (s *Transport) messageWorkerPublish(fmsg *goflowpb.FlowMessage) {
-	MetricFlowMessageCount.Inc()
-	ffmsg := s.FormatFlowMessage(fmsg)
+func (s *Transport) PublishMessage(msg map[string]interface{}) {
 	for _, enricher := range s.Enrichers {
-		ffmsg = enricher.Process(ffmsg)
+		msg = enricher.Process(msg)
 	}
 
 	if s.ParallelizeDestinations {
 		var wg sync.WaitGroup
 		for _, d := range s.Destinations {
 			wg.Add(1)
-			go func(d destination.Destination, ffmsg map[string]interface{}) {
+			go func(d destination.Destination, msg map[string]interface{}) {
 				defer wg.Done()
-				d.Publish(ffmsg)
-			}(d, ffmsg)
+				d.Publish(msg)
+			}(d, msg)
 		}
 		wg.Wait()
 	} else {
 		for _, d := range s.Destinations {
-			d.Publish(ffmsg)
+			d.Publish(msg)
 		}
 	}
+}
+
+func (s *Transport) messageWorkerPublish(fmsg *goflowpb.FlowMessage) {
+	MetricFlowMessageCount.Inc()
+	msg := s.FormatFlowMessage(fmsg)
+	s.PublishMessage(msg)
 }
 
 func (s *Transport) FormatFlowMessage(fmsg *goflowpb.FlowMessage) map[string]interface{} {
