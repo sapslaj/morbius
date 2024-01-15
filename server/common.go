@@ -19,4 +19,5 @@ type Logger interface {
 
 type Transport interface {
 	Publish([]*goflowpb.FlowMessage)
+	PublishMessage(msg map[string]interface{})
 }
