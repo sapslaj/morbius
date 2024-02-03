@@ -139,6 +139,9 @@ issues:
         - cyclop
         - gocyclo
         - gochecknoinits
+    - path: enricher/netdb_enricher\.go
+      linters:
+        - nestif
     - path: enricher/rdns_enricher\.go
       linters:
         - promlinter
