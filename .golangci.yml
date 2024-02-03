@@ -90,6 +90,7 @@ issues:
       linters:
         - gocognit
         - cyclop
+        - dupl
     - path: destination/elasticsearch_destination\.go
       linters:
         - errchkjson
