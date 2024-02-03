@@ -8,17 +8,16 @@ import (
 )
 
 func TestMaxmindDBEnricher(t *testing.T) {
+	t.Parallel()
 	type test struct {
-		desc   string
 		skip   string
 		config enricher.MaxmindDBEnricherConfig
 		input  map[string]interface{}
 		want   map[string]interface{}
 	}
 
-	tests := []test{
-		{
-			desc: "Does not modify message if an address filed is not defined",
+	tests := map[string]test{
+		"does not modify message if an address filed is not defined": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoLite2-ASN-Test.mmdb"},
 				EnabledFields: enricher.MaxmindDBEnricherFields_All,
@@ -26,8 +25,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 			input: map[string]interface{}{"other": 69},
 			want:  map[string]interface{}{"other": 69},
 		},
-		{
-			desc: "Adds info when src_addr is set",
+		"adds info when src_addr is set": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoLite2-ASN-Test.mmdb"},
 				EnabledFields: []enricher.MaxmindDBEnricherField{
@@ -42,8 +40,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_asn":  uint64(15169),
 			},
 		},
-		{
-			desc: "Adds info when dst_addr is set",
+		"adds info when dst_addr is set": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoLite2-ASN-Test.mmdb"},
 				EnabledFields: []enricher.MaxmindDBEnricherField{
@@ -58,8 +55,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"dst_asn":  uint64(15169),
 			},
 		},
-		{
-			desc: "Adds info when src_addr_encap is set",
+		"adds info when src_addr_encap is set": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoLite2-ASN-Test.mmdb"},
 				EnabledFields: []enricher.MaxmindDBEnricherField{
@@ -74,8 +70,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_encap_asn":  uint64(15169),
 			},
 		},
-		{
-			desc: "Adds info when dst_addr_encap is set",
+		"adds info when dst_addr_encap is set": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoLite2-ASN-Test.mmdb"},
 				EnabledFields: []enricher.MaxmindDBEnricherField{
@@ -90,8 +85,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"dst_encap_asn":  uint64(15169),
 			},
 		},
-		{
-			desc: "Works with GeoIP2-Anonymous and all fields enabled",
+		"works with GeoIP2-Anonymous and all fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoIP2-Anonymous-IP-Test.mmdb"},
 				EnabledFields: enricher.MaxmindDBEnricherFields_All,
@@ -108,8 +102,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_is_tor_exit_node":     false,
 			},
 		},
-		{
-			desc: "Works with GeoIP2-Anonymous and only `anonymous_ip` fields enabled",
+		"works with GeoIP2-Anonymous and only `anonymous_ip` fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths:      []string{"./MaxMind-DB/test-data/GeoIP2-Anonymous-IP-Test.mmdb"},
 				EnabledFieldGroups: []string{"anonymous_ip"},
@@ -126,8 +119,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_is_tor_exit_node":     false,
 			},
 		},
-		{
-			desc: "Works with GeoIP2-City and all fields enabled",
+		"works with GeoIP2-City and all fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoIP2-City-Test.mmdb"},
 				EnabledFields: enricher.MaxmindDBEnricherFields_All,
@@ -151,8 +143,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_registered_country_name": "Australia",
 			},
 		},
-		{
-			desc: "Works with GeoIP2-City and only `city` fields enabled",
+		"works with GeoIP2-City and only `city` fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths:      []string{"./MaxMind-DB/test-data/GeoIP2-City-Test.mmdb"},
 				EnabledFieldGroups: []string{"city"},
@@ -176,8 +167,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_registered_country_name": "Australia",
 			},
 		},
-		{
-			desc: "Works with GeoIP2-Connection-Type and all fields enabled",
+		"works with GeoIP2-Connection-Type and all fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoIP2-Connection-Type-Test.mmdb"},
 				EnabledFields: enricher.MaxmindDBEnricherFields_All,
@@ -190,8 +180,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_connection_type": "Cable/DSL",
 			},
 		},
-		{
-			desc: "Works with GeoIP2-Connection-Type and only `connection_type` fields enabled",
+		"works with GeoIP2-Connection-Type and only `connection_type` fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths:      []string{"./MaxMind-DB/test-data/GeoIP2-Connection-Type-Test.mmdb"},
 				EnabledFieldGroups: []string{"connection_type"},
@@ -204,8 +193,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_connection_type": "Cable/DSL",
 			},
 		},
-		{
-			desc: "Works with GeoIP2-Country and all fields enabled",
+		"works with GeoIP2-Country and all fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoIP2-City-Test.mmdb"},
 				EnabledFields: enricher.MaxmindDBEnricherFields_All,
@@ -227,8 +215,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_registered_country_name": "Japan",
 			},
 		},
-		{
-			desc: "Works with GeoIP2-Country and only `country` fields enabled",
+		"works with GeoIP2-Country and only `country` fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths:      []string{"./MaxMind-DB/test-data/GeoIP2-City-Test.mmdb"},
 				EnabledFieldGroups: []string{"country"},
@@ -250,8 +237,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_registered_country_name": "Japan",
 			},
 		},
-		{
-			desc: "Works with GeoIP2-DensityIncome and all fields enabled",
+		"works with GeoIP2-DensityIncome and all fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoIP2-DensityIncome-Test.mmdb"},
 				EnabledFields: enricher.MaxmindDBEnricherFields_All,
@@ -265,8 +251,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_population_density": uint64(1232),
 			},
 		},
-		{
-			desc: "Works with GeoIP2-DensityIncome and only `density_income` enabled",
+		"works with GeoIP2-DensityIncome and only `density_income` enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths:      []string{"./MaxMind-DB/test-data/GeoIP2-DensityIncome-Test.mmdb"},
 				EnabledFieldGroups: []string{"density_income"},
@@ -280,8 +265,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_population_density": uint64(1232),
 			},
 		},
-		{
-			desc: "Works with GeoIP2-Domain and all fields enabled",
+		"works with GeoIP2-Domain and all fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoIP2-Domain-Test.mmdb"},
 				EnabledFields: enricher.MaxmindDBEnricherFields_All,
@@ -294,8 +278,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_domain": "maxmind.com",
 			},
 		},
-		{
-			desc: "Works with GeoIP2-Domain and only `domain` fields enabled",
+		"works with GeoIP2-Domain and only `domain` fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths:      []string{"./MaxMind-DB/test-data/GeoIP2-Domain-Test.mmdb"},
 				EnabledFieldGroups: []string{"domain"},
@@ -308,8 +291,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_domain": "maxmind.com",
 			},
 		},
-		{
-			desc: "Works with GeoIP2-Enterprise and all fields enabled",
+		"works with GeoIP2-Enterprise and all fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoIP2-Enterprise-Test.mmdb"},
 				EnabledFields: enricher.MaxmindDBEnricherFields_All,
@@ -341,8 +323,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_is_satellite_provider":   false,
 			},
 		},
-		{
-			desc: "Works with GeoIP2-Enterprise and only `enterprise` fields enabled",
+		"works with GeoIP2-Enterprise and only `enterprise` fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths:      []string{"./MaxMind-DB/test-data/GeoIP2-Enterprise-Test.mmdb"},
 				EnabledFieldGroups: []string{"enterprise"},
@@ -374,8 +355,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_is_satellite_provider":   false,
 			},
 		},
-		{
-			desc: "Works with GeoIP2-IP-Risk and all fields enabled",
+		"works with GeoIP2-IP-Risk and all fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoIP2-IP-Risk-Test.mmdb"},
 				EnabledFields: enricher.MaxmindDBEnricherFields_All,
@@ -394,8 +374,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_is_residential_proxy": false,
 			},
 		},
-		{
-			desc: "Works with GeoIP2-IP-Risk and only `ip_risk` fields enabled",
+		"works with GeoIP2-IP-Risk and only `ip_risk` fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths:      []string{"./MaxMind-DB/test-data/GeoIP2-IP-Risk-Test.mmdb"},
 				EnabledFieldGroups: []string{"ip_risk"},
@@ -414,8 +393,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_is_residential_proxy": false,
 			},
 		},
-		{
-			desc: "Works with GeoIP2-ISP and all fields enabled",
+		"works with GeoIP2-ISP and all fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoIP2-ISP-Test.mmdb"},
 				EnabledFields: enricher.MaxmindDBEnricherFields_All,
@@ -431,8 +409,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_organization": "Telstra Internet",
 			},
 		},
-		{
-			desc: "Works with GeoIP2-ISP and only `isp` fields enabled",
+		"works with GeoIP2-ISP and only `isp` fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths:      []string{"./MaxMind-DB/test-data/GeoIP2-ISP-Test.mmdb"},
 				EnabledFieldGroups: []string{"isp"},
@@ -448,8 +425,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_organization": "Telstra Internet",
 			},
 		},
-		{
-			desc: "Works with GeoIP2-Precision-Enterprise and all fields enabled",
+		"works with GeoIP2-Precision-Enterprise and all fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoIP2-Precision-Enterprise-Test.mmdb"},
 				EnabledFields: enricher.MaxmindDBEnricherFields_All,
@@ -484,8 +460,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_ip_user_type":            "residential",
 			},
 		},
-		{
-			desc: "Works with GeoIP2-Precision-Enterprise and only `enterprise` fields enabled",
+		"works with GeoIP2-Precision-Enterprise and only `enterprise` fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths:      []string{"./MaxMind-DB/test-data/GeoIP2-Precision-Enterprise-Test.mmdb"},
 				EnabledFieldGroups: []string{"enterprise"},
@@ -520,8 +495,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_ip_user_type":            "residential",
 			},
 		},
-		{
-			desc: "Works with GeoIP2-Static-IP-Score and all fields enabled",
+		"works with GeoIP2-Static-IP-Score and all fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoIP2-Static-IP-Score-Test.mmdb"},
 				EnabledFields: enricher.MaxmindDBEnricherFields_All,
@@ -534,8 +508,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_static_ip_score": 0.01,
 			},
 		},
-		{
-			desc: "Works with GeoIP2-Static-IP-Score and only `static_ip_score` fields enabled",
+		"works with GeoIP2-Static-IP-Score and only `static_ip_score` fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths:      []string{"./MaxMind-DB/test-data/GeoIP2-Static-IP-Score-Test.mmdb"},
 				EnabledFieldGroups: []string{"static_ip_score"},
@@ -548,8 +521,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_static_ip_score": 0.01,
 			},
 		},
-		{
-			desc: "Works with GeoLite2-ASN and all fields enabled",
+		"works with GeoLite2-ASN and all fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoLite2-ASN-Test.mmdb"},
 				EnabledFields: enricher.MaxmindDBEnricherFields_All,
@@ -563,8 +535,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_asn_org": "Google Inc.",
 			},
 		},
-		{
-			desc: "Works with GeoLite2-ASN and `asn` fields enabled",
+		"works with GeoLite2-ASN and `asn` fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths:      []string{"./MaxMind-DB/test-data/GeoLite2-ASN-Test.mmdb"},
 				EnabledFieldGroups: []string{"asn"},
@@ -578,8 +549,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_asn_org": "Google Inc.",
 			},
 		},
-		{
-			desc: "Works with GeoLite2-City and all fields enabled",
+		"works with GeoLite2-City and all fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoLite2-City-Test.mmdb"},
 				EnabledFields: enricher.MaxmindDBEnricherFields_All,
@@ -604,8 +574,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_registered_country_name": "France",
 			},
 		},
-		{
-			desc: "Works with GeoLite2-City and only `city` fields enabled",
+		"works with GeoLite2-City and only `city` fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths:      []string{"./MaxMind-DB/test-data/GeoLite2-City-Test.mmdb"},
 				EnabledFieldGroups: []string{"city"},
@@ -630,8 +599,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_registered_country_name": "France",
 			},
 		},
-		{
-			desc: "Works with GeoLite2-Country and all fields enabled",
+		"works with GeoLite2-Country and all fields enabled": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoLite2-Country-Test.mmdb"},
 				EnabledFields: enricher.MaxmindDBEnricherFields_All,
@@ -650,8 +618,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_registered_country_name": "France",
 			},
 		},
-		{
-			desc: "Uses configured locale for names",
+		"uses configured locale for names": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoLite2-Country-Test.mmdb"},
 				EnabledFields: enricher.MaxmindDBEnricherFields_All,
@@ -670,8 +637,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_registered_country_name": "日本",
 			},
 		},
-		{
-			desc: "Falls back to English if configured locale doesn't contain a name",
+		"falls back to English if configured locale doesn't contain a name": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoLite2-City-Test.mmdb"},
 				EnabledFields: enricher.MaxmindDBEnricherFields_All,
@@ -697,8 +663,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_registered_country_name": "フランス共和国",
 			},
 		},
-		{
-			desc: "Only adds enabled fields",
+		"only adds enabled fields": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{"./MaxMind-DB/test-data/GeoIP2-Enterprise-Test.mmdb"},
 				EnabledFields: []enricher.MaxmindDBEnricherField{
@@ -718,8 +683,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_is_anonymous_proxy": false,
 			},
 		},
-		{
-			desc: "Merges results from multiple DBs",
+		"merges results from multiple DBs": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{
 					"./MaxMind-DB/test-data/GeoLite2-ASN-Test.mmdb",
@@ -749,8 +713,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_asn_org":                 "Bredband2 AB",
 			},
 		},
-		{
-			desc: "Sets EnabledFields to `asn` and `city` by default",
+		"sets EnabledFields to `asn` and `city` by default": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{
 					"./MaxMind-DB/test-data/GeoLite2-ASN-Test.mmdb",
@@ -779,8 +742,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_asn_org":                 "Bredband2 AB",
 			},
 		},
-		{
-			desc: "Sets EnabledFields when EnabledFieldGroups is given",
+		"sets EnabledFields when EnabledFieldGroups is given": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{
 					"./MaxMind-DB/test-data/GeoLite2-ASN-Test.mmdb",
@@ -797,8 +759,7 @@ func TestMaxmindDBEnricher(t *testing.T) {
 				"src_asn_org": "Bredband2 AB",
 			},
 		},
-		{
-			desc: "Appends EnabledFields when EnabledFieldGroups is given",
+		"appends EnabledFields when EnabledFieldGroups is given": {
 			config: enricher.MaxmindDBEnricherConfig{
 				DatabasePaths: []string{
 					"./MaxMind-DB/test-data/GeoLite2-ASN-Test.mmdb",
@@ -821,20 +782,25 @@ func TestMaxmindDBEnricher(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tests {
-		if tc.input == nil {
-			t.Logf("\"%s\": skip (unimplmented)", tc.desc)
-			continue
-		}
-		if tc.skip != "" {
-			t.Logf("\"%s\": skip (%s)", tc.desc, tc.skip)
-			continue
-		}
-		e := enricher.NewMaxmindDBEnricher(&tc.config)
-		got := e.Process(tc.input)
-		if diff := cmp.Diff(tc.want, got); diff != "" {
-			t.Logf("\"%s\":\n%s", tc.desc, diff)
-			t.Fail()
-		}
+	for name, tc := range tests {
+		name := name
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			if tc.input == nil {
+				t.Logf("\"%s\": skip (unimplmented)", name)
+				return
+			}
+			if tc.skip != "" {
+				t.Logf("\"%s\": skip (%s)", name, tc.skip)
+				return
+			}
+			e := enricher.NewMaxmindDBEnricher(&tc.config)
+			got := e.Process(tc.input)
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Logf("\"%s\":\n%s", name, diff)
+				t.Fail()
+			}
+		})
 	}
 }

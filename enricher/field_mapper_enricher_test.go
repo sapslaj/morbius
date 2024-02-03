@@ -8,6 +8,7 @@ import (
 )
 
 func TestFieldMapperEnricher(t *testing.T) {
+	t.Parallel()
 	tests := map[string]struct {
 		input  map[string]interface{}
 		want   map[string]interface{}
@@ -162,6 +163,7 @@ func TestFieldMapperEnricher(t *testing.T) {
 		name := name
 		tc := tc
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			e := enricher.NewFieldMapperEnricher(tc.config)
 			got := e.Process(tc.input)
 			if diff := cmp.Diff(tc.want, got); diff != "" {

@@ -14,44 +14,69 @@ linters:
     - test
     - unused
   disable:
-    - depguard # TODO
-    - exhaustruct # TODO
-    - gci # TODO
+    # deprecated linters
+    - deadcode
+    - exhaustivestruct
+    - golint
+    - ifshort
+    - interfacer
+    - maligned
+    - nosnakecase
+    - scopelint
+    - structcheck
+    - varcheck
+    # disabled due to personal preference
+    - depguard
+    - exhaustruct
+    - gomnd
+    - nlreturn
+    - tagliatelle
+    - unparam
+    - wrapcheck
+    - wsl
+    # disabled because of generics. https://github.com/golangci/golangci-lint/issues/2649
+    - rowserrcheck
+    - sqlclosecheck
+    - wastedassign
+    # TODO: re-evaluate following linters:
+    - gci
     - gochecknoglobals # high false-positive rate
-    - gochecknoinits # TODO
-    - goconst # TODO
-    - gocritic # TODO
-    - goerr113 # TODO
-    - gofumpt # TODO
-    - gomnd # TODO
-    - gosec # TODO
-    - inamedparam # TODO
-    - ireturn # TODO
-    - lll # TODO
-    - nlreturn # TODO
-    - nonamedreturns # TODO
-    - paralleltest # TODO
-    - perfsprint # TODO
-    - protogetter # TODO
-    - revive # TODO
-    - rowserrcheck # disabled because of generics. https://github.com/golangci/golangci-lint/issues/2649
-    - stylecheck # TODO
-    - tagalign # TODO
-    - tagliatelle # disabled because we explicitly do not want this
-    - testifylint # TODO
-    - testpackage # TODO
-    - unparam # TODO
-    - varnamelen # TODO
-    - wastedassign # disabled because of generics. https://github.com/golangci/golangci-lint/issues/2649
-    - wrapcheck # TODO
-    - wsl # TODO
-
+    - gochecknoinits
+    - goconst
+    - gocritic
+    - goerr113
+    - gofumpt
+    - gosec
+    - inamedparam
+    - ireturn
+    - lll
+    - nonamedreturns
+    - paralleltest
+    - perfsprint
+    - protogetter
+    - revive
+    - stylecheck
+    - tagalign
+    - testifylint
+    - testpackage
+    - unparam
+    - varnamelen
 
 linters-settings:
   cyclop:
     max-complexity: 15
   funlen:
     lines: 100
+  gci:
+    sections:
+      - standard
+      - blank
+      - default
+      - blank
+      - prefix(github.com/sapslaj/)
+      - blank
+      - dot
+    custom-order: true
 
 issues:
   exclude:

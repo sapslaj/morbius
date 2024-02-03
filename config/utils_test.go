@@ -8,21 +8,20 @@ import (
 )
 
 func TestMapGetFunc(t *testing.T) {
+	t.Parallel()
 	type input struct {
 		m   map[string]any
 		key string
 		f   func(v any, present bool) string
 	}
 	type test struct {
-		desc  string
 		skip  string
 		input input
 		want  string
 	}
 
-	tests := []test{
-		{
-			desc: "Passed value and true for existing key",
+	tests := map[string]test{
+		"passed value and true for existing key": {
 			input: input{
 				m: map[string]any{
 					"test": "hello",
@@ -37,8 +36,7 @@ func TestMapGetFunc(t *testing.T) {
 			},
 			want: "hello",
 		},
-		{
-			desc: "Passed nil value and false for non-existing key",
+		"passed nil value and false for non-existing key": {
 			input: input{
 				m: map[string]any{
 					"test": "hello",
@@ -57,39 +55,43 @@ func TestMapGetFunc(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tests {
-		if tc.input.m == nil {
-			t.Logf("\"%s\": skip (unimplmented)", tc.desc)
-			continue
-		}
-		if tc.skip != "" {
-			t.Logf("\"%s\": skip (%s)", tc.desc, tc.skip)
-			continue
-		}
-		got := config.MapGetFunc(tc.input.m, tc.input.key, tc.input.f)
-		if diff := cmp.Diff(tc.want, got); diff != "" {
-			t.Logf("\"%s\":\n%s", tc.desc, diff)
-			t.Fail()
-		}
+	for name, tc := range tests {
+		name := name
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			if tc.input.m == nil {
+				t.Logf("\"%s\": skip (unimplmented)", name)
+				return
+			}
+			if tc.skip != "" {
+				t.Logf("\"%s\": skip (%s)", name, tc.skip)
+				return
+			}
+			got := config.MapGetFunc(tc.input.m, tc.input.key, tc.input.f)
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Logf("\"%s\":\n%s", name, diff)
+				t.Fail()
+			}
+		})
 	}
 }
 
 func TestMapGetDefault(t *testing.T) {
+	t.Parallel()
 	type input struct {
 		m   map[string]any
 		key string
 		def string
 	}
 	type test struct {
-		desc  string
 		skip  string
 		input input
 		want  string
 	}
 
-	tests := []test{
-		{
-			desc: "Returns expected value when key is present",
+	tests := map[string]test{
+		"returns expected value when key is present": {
 			input: input{
 				m: map[string]any{
 					"test": "hello",
@@ -99,8 +101,7 @@ func TestMapGetDefault(t *testing.T) {
 			},
 			want: "hello",
 		},
-		{
-			desc: "Returns default value if key is not present",
+		"returns default value if key is not present": {
 			input: input{
 				m: map[string]any{
 					"test": "hello",
@@ -110,8 +111,7 @@ func TestMapGetDefault(t *testing.T) {
 			},
 			want: "oops",
 		},
-		{
-			desc: "Returns default value if value is wrong type",
+		"returns default value if value is wrong type": {
 			input: input{
 				m: map[string]any{
 					"test": 69,
@@ -123,19 +123,24 @@ func TestMapGetDefault(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tests {
-		if tc.input.m == nil {
-			t.Logf("\"%s\": skip (unimplmented)", tc.desc)
-			continue
-		}
-		if tc.skip != "" {
-			t.Logf("\"%s\": skip (%s)", tc.desc, tc.skip)
-			continue
-		}
-		got := config.MapGetDefault(tc.input.m, tc.input.key, tc.input.def)
-		if diff := cmp.Diff(tc.want, got); diff != "" {
-			t.Logf("\"%s\":\n%s", tc.desc, diff)
-			t.Fail()
-		}
+	for name, tc := range tests {
+		name := name
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			if tc.input.m == nil {
+				t.Logf("\"%s\": skip (unimplmented)", name)
+				return
+			}
+			if tc.skip != "" {
+				t.Logf("\"%s\": skip (%s)", name, tc.skip)
+				return
+			}
+			got := config.MapGetDefault(tc.input.m, tc.input.key, tc.input.def)
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Logf("\"%s\":\n%s", name, diff)
+				t.Fail()
+			}
+		})
 	}
 }
