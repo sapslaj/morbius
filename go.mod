@@ -12,7 +12,7 @@ require (
 	github.com/go-logfmt/logfmt v0.5.1
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/snappy v0.0.4
-	github.com/google/go-cmp v0.5.9
+	github.com/google/go-cmp v0.6.0
 	github.com/grafana/dskit v0.0.0-20220928083349-b1b307db4f30
 	github.com/hashicorp/golang-lru/v2 v2.0.1
 	github.com/json-iterator/go v1.1.12
@@ -23,6 +23,7 @@ require (
 	github.com/prometheus/client_golang v1.13.0
 	github.com/prometheus/common v0.37.0
 	github.com/stretchr/testify v1.8.0
+	github.com/thediveo/netdb v1.1.0
 	golang.org/x/exp v0.0.0-20231219180239-dc181d75b848
 	google.golang.org/grpc v1.56.3
 	gopkg.in/yaml.v2 v2.4.0
