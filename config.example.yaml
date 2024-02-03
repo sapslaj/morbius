@@ -138,6 +138,27 @@ enrichers:
       - city_name
       - country_name
 
+  field_mapper:
+    # YAML anchors are supported and are very useful in the
+    # `field_mapper` config.
+    fields:
+      - source_field: sampler_address
+        target_field: sampler_name
+        mapping:
+          10.0.0.1: router1
+          10.0.0.2: router2
+      - source_field: out_interface
+        target_field: out_interface_name
+        template: &interface_template >
+          {{ if eq .Msg.sampler_name "router1" }}
+          igb{{ .SourceField }}
+          {{ else if eq .Msg.sampler_name "router2" }}
+          eth{{ .SourceField }}
+          {{ end }}
+      - source_field: in_interface
+        target_field: in_interface_name
+        template: *interface_template
+
 # Destination config
 destinations:
 
