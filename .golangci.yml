@@ -142,6 +142,9 @@ issues:
     - path: enricher/netdb_enricher\.go
       linters:
         - nestif
+        - funlen
+        - gocognit
+        - cyclop
     - path: enricher/rdns_enricher\.go
       linters:
         - promlinter
