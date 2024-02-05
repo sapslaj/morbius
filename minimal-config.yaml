@@ -12,7 +12,7 @@ server:
 enrichers:
   addr_type:
     enable: true
-  proto_names:
+  netdb:
     enable: true
   rdns:
     enable_cache: true

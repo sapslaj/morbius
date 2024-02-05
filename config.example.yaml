@@ -81,10 +81,6 @@ transport:
 enrichers:
 
   # Setting any setting, even a nonsensical one, is good enough to enable it
-  proto_names:
-    morbing: enabled
-
-  # ...including here
   addr_type:
     not_enabled: false
 
@@ -137,6 +133,43 @@ enrichers:
       - asn_org
       - city_name
       - country_name
+
+  netdb:
+    ethertypes:
+      # Enable the built-in EtherType database.
+      built_in: true
+
+      # You can also load /etc/ethertypes from the local file system.
+      source_files:
+        - /etc/ethertypes
+
+      # ... or define your own in the same format as /etc/ethertypes.
+      source_inline:
+        - PROFINET 8892
+
+      # Set aliases to use in the final flow value instead of the
+      # defined name. Since the /etc/ethertypes standard doesn't allow
+      # for spaces in the name, you can set your own name _with_
+      # spaces here if you want. The key is the protocol name (or one
+      # of its built-in aliases) and the value is the value you want.
+      name_aliases:
+        IPv4: Internet Protocol version 4 (IPv4)
+
+    protocols:
+      # Protocols supports the same parameters as `ethertypes`, but
+      # instead is relevant for /etc/protocols
+      built_in: true
+      source_files:
+        - /etc/protocols
+
+    services:
+      # The service database depends on protocol database to also be
+      # populated, otherwise lookups won't work correctly. Make sure
+      # all of the associated protocols are defined for all of the
+      # services you want defined.
+      built_in: true
+      source_files:
+        - /etc/services
 
   field_mapper:
     # YAML anchors are supported and are very useful in the
