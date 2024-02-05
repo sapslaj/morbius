@@ -95,6 +95,56 @@ func TestNetDBEnricher(t *testing.T) {
 			input: map[string]interface{}{"ethernet_type": 0x69},
 			want:  map[string]interface{}{"ethernet_type": 0x69, "ethernet_type_name": "nice"},
 		},
+		"supports name aliases": {
+			config: &enricher.NetDBEnricherConfig{
+				EtherTypes: &enricher.NetDBEnricherConfigConfig{
+					BuiltIn: true,
+					NameAliases: map[string]string{
+						"IPv4": "custom EtherType alias",
+					},
+				},
+				Protocols: &enricher.NetDBEnricherConfigConfig{
+					BuiltIn: true,
+					NameAliases: map[string]string{
+						"tcp": "custom protocol alias",
+					},
+				},
+				Services: &enricher.NetDBEnricherConfigConfig{
+					BuiltIn: true,
+					NameAliases: map[string]string{
+						"http": "custom service alias",
+					},
+				},
+			},
+			input: map[string]interface{}{"ethernet_type": 2048, "proto": 6, "src_port": 80, "dst_port": 80},
+			want: map[string]interface{}{
+				"ethernet_type":      2048,
+				"ethernet_type_name": "custom EtherType alias",
+				"proto":              6,
+				"protocol_name":      "custom protocol alias",
+				"src_port":           80,
+				"src_service_name":   "custom service alias",
+				"dst_port":           80,
+				"dst_service_name":   "custom service alias",
+				"service_name":       "custom service alias",
+			},
+		},
+		"aliases can use aliases": {
+			config: &enricher.NetDBEnricherConfig{
+				EtherTypes: &enricher.NetDBEnricherConfigConfig{
+					BuiltIn: true,
+					NameAliases: map[string]string{
+						"802.1q": "an alias of an alias!",
+					},
+				},
+			},
+			input: map[string]interface{}{"ethernet_type": 33024},
+			want:  map[string]interface{}{"ethernet_type": 33024, "ethernet_type_name": "an alias of an alias!"},
+		},
+		"uses extra built-in EtherTypes": {
+			input: map[string]interface{}{"ethernet_type": 0x88bf},
+			want:  map[string]interface{}{"ethernet_type": 0x88bf, "ethernet_type_name": "mikrotik-romon"},
+		},
 	}
 
 	for name, tc := range tests {
