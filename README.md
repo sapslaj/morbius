@@ -11,8 +11,104 @@ It uses [GoFlow from Cloudflare](https://github.com/cloudflare/goflow) to collec
 * `AddrTypeEnricher` - sets a `_type` field based on the type of IP address (`private`, `global`, etc.)
 * `FieldMapperEnricher` - allows arbitrary field additions based on either simple key/value mappings or more complex logic. Useful for setting config-specific friendly names e.g. `{in,out}_interface`, `sampler_address`, etc.
 * `MaxmindDBEnricher` - adds IP address information from a [MaxMind DB](https://github.com/maxmind/MaxMind-DB)
-* `ProtonamesEnricher` - adds protocol and etype names based on a lookup table
+* `NetDBEnricher` - adds protocol, service, and EtherType information based on [netdb](https://github.com/thediveo/netdb/)
+* `ProtonamesEnricher` *(deprecated - use `NetDBEnricher` instead)* - adds protocol and etype names based on a lookup table
 * `RDNSEnricher` - adds rDNS hostname based on IP address fields
+
+#### `ProtonamesEnricher` -> `NetDBEnricher` migration
+
+The built-in database for netdb is based on [Debian's netbase](https://salsa.debian.org/md/netbase) project. Unfortunately, that database doesn't contain all of the entries supported by `ProtonamesEnricher` nor does it present the names in the exact same format. Morbius takes care of the missing entries, however there is no special handling for full backwards compatibility. If you need full backwards compatibility, use the following configuration to enable name aliases for the protocols and EtherTypes that will match that `ProtonamesEnricher` outputs:
+
+<details>
+<summary>Show configuration</summary>
+
+```yaml
+enrichers:
+  netdb:
+    protocols:
+      built_in: true
+      name_aliases:
+        ah: IPSEC-AH
+        hmp: HMP
+        hip: HIP
+        ddp: DDP
+        xtp: XTP
+        vmtp: VMTP
+        rspf: RSPF
+        tcp: TCP
+        dccp: DCCP
+        ipv6-frag: IPv6-Frag
+        hopopt: HOPOPT
+        pim: PIM
+        manet: MANET
+        rsvp: RSVP
+        idpr-cmtp: IDPR-CMTP
+        skip: SKIP
+        ggp: GGP
+        ipencap: IP-ENCAP
+        l2tp: L2TP
+        ipv6: IPv6
+        ipv6-opts: IPv6-Opts
+        udp: UDP
+        udplite: UDPLite
+        mobility-header: Mobility-Header
+        igmp: IGMP
+        shim6: Shim6
+        vrrp: VRRP
+        ax.25: AX.25
+        sctp: SCTP
+        ipv6-nonxt: IPv6-NoNxt
+        gre: GRE
+        mpls-in-ip: MPLS-in-IP
+        ipv6-icmp: IPv6-ICMP
+        eigrp: EIGRP
+        pup: PUP
+        ospf: OSPFIGP
+        esp: IPSEC-ESP
+        encap: ENCAP
+        fc: FC
+        ipcomp: IPCOMP
+        wesp: WESP
+        icmp: ICMP
+        egp: EGP
+        xns-idp: XNS-IDP
+        iso-tp4: ISO-TP4
+        st: ST
+        igp: IGP
+        rohc: ROHC
+        isis: ISIS
+        ipv6-route: IPv6-Route
+        idrp: IDRP
+        ipip: IPIP
+        rdp: RDP
+        etherip: ETHERIP
+    ethertypes:
+      built_in: true
+      name_aliases:
+        wake-on-lan: Wake-on-LAN
+        PPP_DISC: PPPoE Discovery Stage
+        PPP_SES: PPPoE Session Stage
+        MACSEC: MACsec
+        AARP: AppleTalk AARP
+        srp: SRP
+        ATALK: AppleTalk
+        EAPOL: 802.1X
+        loopback: Loopback
+        S-TAG: S-Tag
+        mikrotik-romon: MikroTik RoMON
+        qnx-qnet: QNX Qnet
+        slpp: SLPP
+        epon: EPON
+        MPLS_MULTI: MPLS multicast
+        802_1Q: C-Tag
+        lacp: LACP
+        cobranet: CobraNet
+        vlacp: VLACP
+        avtp: AVTP
+        MPLS: MPLS unicast
+```
+
+</details>
 
 ### Destinations
 

@@ -1,5 +1,7 @@
 package enricher
 
+import "log"
+
 type ProtonamesEnricherConfig struct {
 }
 
@@ -13,6 +15,7 @@ func NewProtonamesEnricher(config *ProtonamesEnricherConfig) ProtonamesEnricher 
 	if config == nil {
 		config = &ProtonamesEnricherConfig{}
 	}
+	log.Println("[WARN] ProtonamesEnricher is deprecated. Use NetDBEnricher instead.")
 	return ProtonamesEnricher{
 		Config: config,
 		protoTable: map[int]string{
