@@ -23,6 +23,7 @@ type Config struct {
 	Enrichers struct {
 		AddrType    *enricher.AddrTypeEnricherConfig    `yaml:"addr_type"`
 		MaxmindDB   *enricher.MaxmindDBEnricherConfig   `yaml:"maxmind_db"`
+		NetDB       *enricher.NetDBEnricherConfig       `yaml:"netdb"`
 		ProtoNames  *enricher.ProtonamesEnricherConfig  `yaml:"proto_names"`
 		RDNS        *enricher.RDNSEnricherConfig        `yaml:"rdns"`
 		FieldMapper *enricher.FieldMapperEnricherConfig `yaml:"field_mapper"`
@@ -75,6 +76,10 @@ func (c *Config) BuildEnrichers() []enricher.Enricher {
 	if c.Enrichers.MaxmindDB != nil {
 		maxmindDBEnricher := enricher.NewMaxmindDBEnricher(c.Enrichers.MaxmindDB)
 		enrichers = append(enrichers, &maxmindDBEnricher)
+	}
+	if c.Enrichers.NetDB != nil {
+		netdbEnricher := enricher.NewNetDBEnricher(c.Enrichers.NetDB)
+		enrichers = append(enrichers, &netdbEnricher)
 	}
 	if c.Enrichers.ProtoNames != nil {
 		protnamesEnricher := enricher.NewProtonamesEnricher(c.Enrichers.ProtoNames)
